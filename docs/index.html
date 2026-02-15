@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily News Dashboard</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: rgba(255,255,255,0.05);
+  --surface-hover: rgba(255,255,255,0.08);
+  --border: rgba(255,255,255,0.08);
+  --highlight: rgba(255,255,255,0.12);
+  --text: #e4e4e7;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --sidebar-width: 260px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans",
+               "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ambient glow blobs */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+}
+.blob--purple { width: 600px; height: 600px; background: #8b5cf6; top: -200px; left: -100px; }
+.blob--pink   { width: 500px; height: 500px; background: #ec4899; bottom: -150px; right: -100px; }
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,15,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.header .updated {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 24px 0;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,15,0.6);
+  position: sticky;
+  top: 53px;
+  z-index: 99;
+}
+.tab {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: #8b5cf6;
+}
+
+/* Layout */
+.layout {
+  display: flex;
+  min-height: calc(100vh - 110px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  padding: 20px 12px;
+  border-right: 1px solid var(--border);
+  background: rgba(10,10,15,0.5);
+  backdrop-filter: blur(10px);
+}
+.sidebar-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  padding: 0 12px 8px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 14px;
+  color: var(--text-muted);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { background: var(--surface-hover); }
+.nav-item.active { background: var(--surface); color: var(--text); }
+.nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nav-badge {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  padding: 24px 32px;
+  max-width: 960px;
+}
+.category-section { display: none; }
+.category-section.visible { display: block; }
+.site-card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  position: relative;
+}
+.site-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--highlight);
+}
+.site-card-header {
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.site-card-header .cat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.article-list { list-style: none; }
+.article-item {
+  border-bottom: 1px solid var(--border);
+}
+.article-item:last-child { border-bottom: none; }
+.article-item a {
+  display: block;
+  padding: 12px 20px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: background 0.15s;
+}
+.article-item a:hover {
+  background: var(--surface-hover);
+}
+
+/* Mobile: sidebar becomes horizontal scrolling tabs */
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar-label { display: none; }
+  .nav-item {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  .nav-badge { display: none; }
+  .main {
+    padding: 16px;
+    max-width: 100%;
+  }
+  .site-card-header { padding: 12px 16px; font-size: 14px; }
+  .article-item a { padding: 10px 16px; font-size: 13px; }
+  .header { padding: 12px 16px; }
+  .header h1 { font-size: 17px; }
+  .tabs { padding: 8px 16px 0; top: 49px; }
+}
+</style>
+</head>
+<body>
+<div class="blob blob--purple"></div>
+<div class="blob blob--pink"></div>
+
+<header class="header">
+  <h1>Daily News Dashboard</h1>
+  <span class="updated">2026-02-15 21:52 JST</span>
+</header>
+
+<nav class="tabs">
+  <button class="tab active">Today's News</button>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">Categories</div>
+    <button class="nav-item active" data-category="all">
+      <span class="nav-dot" style="background: #fff;"></span>
+      ALL
+      <span class="nav-badge">80</span>
+    </button>
+    
+    <button class="nav-item" data-category="tech">
+      <span class="nav-dot" style="background: #8b5cf6;"></span>
+      テック・AI
+      <span class="nav-badge">48</span>
+    </button>
+    
+    <button class="nav-item" data-category="fashion">
+      <span class="nav-dot" style="background: #ec4899;"></span>
+      ファッション・デザイン
+      <span class="nav-badge">16</span>
+    </button>
+    
+    <button class="nav-item" data-category="business">
+      <span class="nav-dot" style="background: #10b981;"></span>
+      経済・ビジネス
+      <span class="nav-badge">8</span>
+    </button>
+    
+    <button class="nav-item" data-category="general">
+      <span class="nav-dot" style="background: #f59e0b;"></span>
+      一般ニュース
+      <span class="nav-badge">8</span>
+    </button>
+    
+  </aside>
+
+  <main class="main">
+    
+    <div class="category-section" data-cat="tech">
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          TechCrunch
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/15/the-great-computer-science-exodus-and-where-students-are-going-instead/" target="_blank" rel="noopener">The great computer science exodus (and where students are going instead)</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/homeland-security-reportedly-sent-hundreds-of-subpoenas-seeking-to-unmask-anti-ice-accounts/" target="_blank" rel="noopener">Homeland Security reportedly sent hundreds of subpoenas seeking to unmask anti-ICE accounts</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/is-safety-is-dead-at-xai/" target="_blank" rel="noopener">Is safety ‘dead’ at xAI?</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/stacy-brown-philpot-cherryrock-capital-vc/" target="_blank" rel="noopener">In a changed VC landscape, this exec is doubling down on overlooked founders</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/clueless-inspired-app-alta-partners-with-brand-public-school-to-start-integrating-styling-tools-into-websites/" target="_blank" rel="noopener">‘Clueless’ -inspired app Alta partners with brand Public School to start integrating styling tools into websites</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/hollywood-isnt-happy-about-the-new-seedance-2-0-video-generator/" target="_blank" rel="noopener">Hollywood isn’t happy about the new Seedance 2.0 video generator</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/designer-kate-barton-teams-up-with-ibm-and-fiducia-ai-for-a-nyfw-presentation/" target="_blank" rel="noopener">Designer Kate Barton teams up with IBM and Fiducia AI for a NYFW presentation</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://techcrunch.com/2026/02/14/india-doubles-down-on-state-backed-venture-capital-approving-1-1b-fund/" target="_blank" rel="noopener">India doubles down on state-backed venture capital, approving $1.1B fund</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          ITmedia
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/mobile/articles/2602/15/news015.html" target="_blank" rel="noopener">[ITmedia Mobile] 幅92mmの「HUAWEI Pura X」は“令和のズルトラ”？　「Xperia Z Ultra」と実機比較、折りたためるファブレットだ</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/mobile/articles/2602/15/news014.html" target="_blank" rel="noopener">[ITmedia Mobile] 楽天モバイルの「ホッピング」対策に違和感　「5回線目から」の手数料では止まらないワケ</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/mobile/articles/2602/15/news010.html" target="_blank" rel="noopener">[ITmedia Mobile] “iPhone対抗”を明確に打ち出すOPPO「Reno15 Pro Max」</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/mobile/articles/2602/15/news013.html" target="_blank" rel="noopener">[ITmedia Mobile] 【ニトリ】3990円の「スマホで簡単記録体組成計」　11項目のデータを10人分測定できる</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/business/articles/2602/15/news002.html" target="_blank" rel="noopener">[ITmedia ビジネスオンライン] なぜ“深夜の書店”に若者が集まったのか　紀伊國屋書店「夜通しフェス」完売の舞台裏</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/news/articles/2602/15/news011.html" target="_blank" rel="noopener">[ITmedia News] 「ドラクエVII」はとにかく親切で簡単サックサク！　元ドラクエ苦手マンガ家が伝えたいストレスなしRPGの魅力</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/pcuser/articles/2602/15/news009.html" target="_blank" rel="noopener">[ITmedia PC USER] Windows 11 26H1は「Qualcomm Snapdragon X2」専用に／「東京ゲームショウ2026」は初の5日間開催</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.itmedia.co.jp/mobile/articles/2602/14/news023.html" target="_blank" rel="noopener">[ITmedia Mobile] 高騰するスマホの価格　「下取り前提の販売プログラム」の出番が増すも課題</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          The Verge
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/policy/879508/jikipedia-epstein-email-encyclopedia" target="_blank" rel="noopener">Jikipedia turns Epstein’s emails into an encyclopedia of his powerful friends</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/gadgets/878927/ibuypower-gaming-desktop-pc-presidents-day-sale-deal" target="_blank" rel="noopener">iBuyPower’s gaming desktops are discounted for Presidents Day</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/entertainment/879482/georgia-techs-musical-instrument-competition-fiddle-henge" target="_blank" rel="noopener">Georgia Tech announced the finalists in its wild musical instrument competition</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/tech/877491/gamesir-pocket-taco-wireless-bluetooth-controller-clamp-hands-on" target="_blank" rel="noopener">The Pocket Taco is the best way to turn your phone into a Game Boy</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/policy/879273/alex-pretti-ice-cbp-trump-free-speech" target="_blank" rel="noopener">A powerful tool of resistance is already in your hands</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/report/879327/eva-ai-cafe-dating-ai-companions" target="_blank" rel="noopener">My uncanny AI valentines</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/games/878121/relooted-review-xbox-steam" target="_blank" rel="noopener">Returning stolen artifacts becomes a thrilling heist in Relooted</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.theverge.com/gadgets/879003/anker-140w-2-in-1-usb-c-cable-presidents-day-sale-deal" target="_blank" rel="noopener">Anker’s USB-C cable that lets you charge two gadgets at once is 20 percent off</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          AI News
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/ai-forecasting-model-targets-healthcare-resource-efficiency/" target="_blank" rel="noopener">AI forecasting model targets healthcare resource efficiency</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/what-murder-mystery-2-reveals-about-emergent-behaviour-in-online-games/" target="_blank" rel="noopener">What Murder Mystery 2 reveals about emergent behaviour in online games</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/agentic-ai-drives-finance-roi-in-accounts-payable-automation/" target="_blank" rel="noopener">Agentic AI drives finance ROI in accounts payable automation</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/newsweek-ceo-dev-pragad-warns-publishers-adapt-as-ai-becomes-news-gateway/" target="_blank" rel="noopener">Newsweek CEO Dev Pragad warns publishers: adapt as AI becomes news gateway</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/how-e-is-using-hr-to-bring-ai-into-enterprise-operations/" target="_blank" rel="noopener">How e&amp; is using HR to bring AI into enterprise operations</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/alibaba-rynnbrain-physical-ai-robots-china/" target="_blank" rel="noopener">Alibaba enters physical AI race with open-source robot model RynnBrain</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/financial-services-ai-deployment-singapore/" target="_blank" rel="noopener">AI deployment in financial services hits an inflection point as Singapore leads the shift to production</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.artificialintelligence-news.com/news/state-sponsored-hackers-ai-cyberattacks-google/" target="_blank" rel="noopener">Google identifies state-sponsored hackers using AI in attacks</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          CryptoSlate
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/xrpls-token-escrow-targets-regulatory-friendly-blockchain-use/" target="_blank" rel="noopener">Token Escrow on XRPL could force new XRP demand, but only if this adoption hurdle breaks</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/tether-150m-gold-com-deal-aims-to-make-tokenized-gold-a-mainstream-hedge/" target="_blank" rel="noopener">Tether quietly stacked 27 tons of gold, now it’s wiring $150M to sell it to crypto users</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/this-is-what-wall-street-crypto-looks-like-ibit-options-went-vertical-as-bitcoin-hit-60k-intraday/" target="_blank" rel="noopener">This is what “Wall Street crypto” looks like: IBIT options went vertical as Bitcoin hit $60k intraday</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/crypto-enters-a-16-day-danger-zone-as-top-crypto-operators-rotate-into-ai/" target="_blank" rel="noopener">Bitcoin is at risk of a talent drain because AI just created 1.3 million jobs</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/bitcoin-refuses-to-lose-70000-this-weekend-was-my-49k-bottom-call-wrong/" target="_blank" rel="noopener">Bitcoin refuses to lose $70,000 this weekend. Was my $49k bottom call wrong?</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/traders-walked-into-a-free-bitcoin-trap-on-bithumb-and-it-triggered-a-17-flash-drop/" target="_blank" rel="noopener">Traders walked into a “free Bitcoin” trap on Bithumb and it triggered a 17% flash drop</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/bitcoin-is-near-to-the-market-bottom-as-new-macro-data-points-toward-an-unlikely-2026-recession/" target="_blank" rel="noopener">Early Bitcoin bottom signals are starting to flash as BTC is still down $20k as stocks rip</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://cryptoslate.com/bitcoin-jumps-6-as-us-inflation-cools-in-january-but-missing-2025-data-obscures-the-full-picture/" target="_blank" rel="noopener">Bitcoin spikes 6% on softer US inflation but government data has holes that haven’t been fixed</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #8b5cf6;"></span>
+          Hacker News
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://k7r.eu/i-love-the-work-of-the-archwiki-maintainers/" target="_blank" rel="noopener">I love the work of the ArchWiki maintainers</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://flashpointarchive.org" target="_blank" rel="noopener">Flashpoint Archive – Over 200k web games and animations preserved</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.seangoedecke.com/fast-llm-inference/" target="_blank" rel="noopener">Two different tricks for fast LLM inference</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://marler8997.github.io/blog/fixed-windows/" target="_blank" rel="noopener">I Fixed Windows Native Development</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://aimilios.bearblog.dev/reverse-engineering-sleep-mask/" target="_blank" rel="noopener">My smart sleep mask broadcasts users&#39; brainwaves to an open MQTT broker</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://stargazingbuddy.com/" target="_blank" rel="noopener">A practical guide to observing the night sky for real skies and real equipment</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://words.filippo.io/go-source/" target="_blank" rel="noopener">Inspecting the Source of Go Modules</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://github.com/alibaba/zvec" target="_blank" rel="noopener">Zvec: A lightweight, fast, in-process vector database</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+    </div>
+    
+    <div class="category-section" data-cat="fashion">
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #ec4899;"></span>
+          FASHIONSNAP
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/streetstyle/2026-02-15/481930/" target="_blank" rel="noopener">ストリートスタイル: Job: 古着屋</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/article/2026-02-15/ground-y-ikebukuro/" target="_blank" rel="noopener">グラウンド ワイが池袋PARCOに新店舗をオープン　国内8店舗目</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/streetstyle/2026-02-15/481881/" target="_blank" rel="noopener">ストリートスタイル: Job: フリーター</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/article/2026-02-15/muji-new-cleansing/" target="_blank" rel="noopener">「無印良品」マイルド洗顔料新作はパック使用できるクレイ洗顔と低刺激性バーム</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/streetstyle/2026-02-15/481875/" target="_blank" rel="noopener">ストリートスタイル: Job: 会社員</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/streetstyle/2026-02-15/480080/" target="_blank" rel="noopener">ストリートスタイル: Job: アパレル</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/article/2026-02-15/julie-josephine-japan/" target="_blank" rel="noopener">ノルウェー・オスロ発「ジュリー・ジョセフィン」が日本初上陸　“完璧な白T”を追求</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.fashionsnap.com/article/2026-02-15/senken-london-fabric-factory/" target="_blank" rel="noopener">ロンドンの若者が繊維産地を見学　ファッションの源流を体感</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #ec4899;"></span>
+          designboom
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/design/kinetic-lighting-mechanical-movement-sculpture-steel-glass-totem-de-luz-kutarq-studio/" target="_blank" rel="noopener">kinetic lighting activates mechanical movement in a sculpture of steel and glass</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/architecture/article-25-off-grid-village-tanzania-stable-loving-home-60-children-kao-la-amani/" target="_blank" rel="noopener">article 25 builds off-grid village in tanzania, providing a stable, loving home for 60 children</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/architecture/reclaimed-brick-skin-wooden-frame-1969-seoul-residence-a-co-lab/" target="_blank" rel="noopener">reclaimed brick skin and wooden frame update 1969 seoul residence</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/design/turquoise-resin-peruvian-clay-whistling-vessels-vicus-collection-baron-vicario-domingo-seminario-de-col/" target="_blank" rel="noopener">turquoise resin reimagines peruvian clay whistling vessels for vicús collection</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/architecture/encasa-archstudio-tropical-house-concrete-vault-kerala-india/" target="_blank" rel="noopener">encasa archstudio shapes a tropical house with four interlocking concrete vaults</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/technology/vintage-film-roll-miniature-functional-digital-camera-opt/" target="_blank" rel="noopener">vintage film roll flips into miniature and functional digital camera</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/architecture/marc-fornes-theverymany-fuselage-louis-vuitton-cafe-store-heathrow-airport/" target="_blank" rel="noopener">marc fornes / THEVERYMANY lands fuselage-like louis vuitton café and store at heathrow</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.designboom.com/art/inflatable-rhinoceros-medieval-gallery-kunstmuseum-magdeburg-itamar-gov-sculpture/" target="_blank" rel="noopener">an inflatable rhinoceros occupies the medieval gallery of kunstmuseum magdeburg</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+    </div>
+    
+    <div class="category-section" data-cat="business">
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #10b981;"></span>
+          日経新聞
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQODH1439T0U6A210C2000000/" target="_blank" rel="noopener">スケート・ストルツ頂上決戦制し「2冠」、男子500m異次元の滑り</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQODH151VG0V10C26A2000000/" target="_blank" rel="noopener">スキー堀島行真がデュアルモーグルで銀メダル　ミラノ五輪</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQOUD151UE0V10C26A2000000/" target="_blank" rel="noopener">拉致被害者の消息聞き取り　家族会が運動方針</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQODH151KE0V10C26A2000000/" target="_blank" rel="noopener">ラグビー神戸、BL東京に初勝利　キックパスから松永貫汰が2トライ</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQOCB151WK0V10C26A2000000/" target="_blank" rel="noopener">米国から「差別に対する羞恥心消えた」　オバマ氏、類人猿動画嘆く</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQOUC123H80S5A211C2000000/" target="_blank" rel="noopener">伊藤忠など出資のCEC、小型太陽光に1600億円　メガソーラー逆風</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQOKC151TU0V10C26A2000000/" target="_blank" rel="noopener">岩井明愛2位、畑岡奈紗は6位　欧州女子ゴルフ</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.nikkei.com/article/DGXZQOKC151O40V10C26A2000000/" target="_blank" rel="noopener">J1百年構想リーグ、東京Vが2連勝　川崎・名古屋はPK勝ち</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+    </div>
+    
+    <div class="category-section" data-cat="general">
+      
+      <div class="site-card">
+        <div class="site-card-header">
+          <span class="cat-dot" style="background: #f59e0b;"></span>
+          BBC News
+        </div>
+        <ul class="article-list">
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/c8r15e4ek2vo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">UK wants action taken on Russia after Navalny frog poisoning, Cooper says</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/c0k1vkmxgd6o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Children &#39;weaponised&#39; by both sides of trans debate, says author of gender identity report</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/clyz4y3zwz5o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Iran ready to discuss compromises to reach nuclear deal, minister tells BBC in Tehran</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/cvg5l75yx6vo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Gender pay gap won&#39;t close for another 30 years, warns union</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/cev7edxxzm7o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">&#39;Fast-spreading&#39; measles outbreak hits several schools in London</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/news/articles/ckg8r28d3lgo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Death of the sex drive - and the great debate over whether testosterone can help get it back</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/sport/articles/c15xzvll0vzo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">GB curlers sweep aside Germany to edge closer to semis</a>
+          </li>
+          
+          <li class="article-item">
+            <a href="https://www.bbc.com/sport/videos/c8egd62345po?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Watch: GB&#39;s Muir qualifies for women&#39;s big air final</a>
+          </li>
+          
+        </ul>
+      </div>
+      
+    </div>
+    
+  </main>
+</div>
+
+<script>
+(function() {
+  var navItems = document.querySelectorAll('.nav-item');
+  var sections = document.querySelectorAll('.category-section');
+
+  function show(category) {
+    navItems.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+    });
+    sections.forEach(function(sec) {
+      if (category === 'all') {
+        sec.classList.add('visible');
+      } else {
+        sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
+      }
+    });
+  }
+
+  navItems.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      show(this.getAttribute('data-category'));
+    });
+  });
+
+  // Default: show all
+  show('all');
+})();
+</script>
+</body>
+</html>
