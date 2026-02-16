@@ -1,327 +1,767 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily News Dashboard</title>
-<style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily News Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #f5f3f0;
+      --bg-surface: #ffffff;
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(0, 0, 0, 0.06);
+      --glass-hover: rgba(255, 255, 255, 0.85);
+      --text-primary: #1a1a2e;
+      --text-secondary: #555566;
+      --text-muted: #999aaa;
+      --accent-tech: #6366f1;
+      --accent-fashion: #ec4899;
+      --accent-news: #0ea5e9;
+      --accent-tech-soft: rgba(99, 102, 241, 0.08);
+      --accent-fashion-soft: rgba(236, 72, 153, 0.08);
+      --accent-news-soft: rgba(14, 165, 233, 0.08);
+      --sidebar-width: 260px;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+      --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
 
-:root {
-  --bg: #0a0a0f;
-  --surface: rgba(255,255,255,0.05);
-  --surface-hover: rgba(255,255,255,0.08);
-  --border: rgba(255,255,255,0.08);
-  --highlight: rgba(255,255,255,0.12);
-  --text: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
-  --sidebar-width: 260px;
-}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans",
-               "Noto Sans JP", sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+    body {
+      font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
 
-/* Ambient glow blobs */
-.blob {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.18;
-  pointer-events: none;
-  z-index: 0;
-}
-.blob--purple { width: 600px; height: 600px; background: #8b5cf6; top: -200px; left: -100px; }
-.blob--pink   { width: 500px; height: 500px; background: #ec4899; bottom: -150px; right: -100px; }
+    /* Soft pastel ambient blobs */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(150px);
+      opacity: 0.4;
+      z-index: 0;
+      pointer-events: none;
+    }
 
-/* Header */
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(10,10,15,0.8);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.header h1 {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.header .updated {
-  font-size: 13px;
-  color: var(--text-dim);
-}
+    body::before {
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, #c7d2fe 0%, #e0e7ff 30%, transparent 70%);
+      top: -250px;
+      left: -150px;
+    }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 12px 24px 0;
-  border-bottom: 1px solid var(--border);
-  background: rgba(10,10,15,0.6);
-  position: sticky;
-  top: 53px;
-  z-index: 99;
-}
-.tab {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-}
-.tab.active {
-  color: var(--text);
-  border-bottom-color: #8b5cf6;
-}
+    body::after {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, #fce7f3 0%, #fdf2f8 30%, transparent 70%);
+      bottom: -200px;
+      right: -100px;
+    }
 
-/* Layout */
-.layout {
-  display: flex;
-  min-height: calc(100vh - 110px);
-  position: relative;
-  z-index: 1;
-}
+    /* Extra ambient blob */
+    .ambient-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.3;
+      z-index: 0;
+      pointer-events: none;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #d1fae5 0%, #ecfdf5 30%, transparent 70%);
+      top: 40%;
+      right: 20%;
+    }
 
-/* Sidebar */
-.sidebar {
-  width: var(--sidebar-width);
-  min-width: var(--sidebar-width);
-  padding: 20px 12px;
-  border-right: 1px solid var(--border);
-  background: rgba(10,10,15,0.5);
-  backdrop-filter: blur(10px);
-}
-.sidebar-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  padding: 0 12px 8px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-size: 14px;
-  color: var(--text-muted);
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-}
-.nav-item:hover { background: var(--surface-hover); }
-.nav-item.active { background: var(--surface); color: var(--text); }
-.nav-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.nav-badge {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-dim);
-  background: var(--surface);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
 
-/* Main content */
-.main {
-  flex: 1;
-  padding: 24px 32px;
-  max-width: 960px;
-}
-.category-section { display: none; }
-.category-section.visible { display: block; }
-.site-card {
-  background: var(--surface);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  position: relative;
-}
-.site-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--highlight);
-}
-.site-card-header {
-  padding: 16px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.site-card-header .cat-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.article-list { list-style: none; }
-.article-item {
-  border-bottom: 1px solid var(--border);
-}
-.article-item:last-child { border-bottom: none; }
-.article-item a {
-  display: block;
-  padding: 12px 20px;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 14px;
-  line-height: 1.6;
-  transition: background 0.15s;
-}
-.article-item a:hover {
-  background: var(--surface-hover);
-}
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-right: 1px solid var(--glass-border);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 10;
+      overflow-y: auto;
+    }
 
-/* Mobile: sidebar becomes horizontal scrolling tabs */
-@media (max-width: 768px) {
-  .layout { flex-direction: column; }
-  .sidebar {
-    width: 100%;
-    min-width: unset;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: 12px;
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidebar-label { display: none; }
-  .nav-item {
-    flex-shrink: 0;
-    padding: 8px 16px;
-    white-space: nowrap;
-    font-size: 13px;
-  }
-  .nav-badge { display: none; }
-  .main {
-    padding: 16px;
-    max-width: 100%;
-  }
-  .site-card-header { padding: 12px 16px; font-size: 14px; }
-  .article-item a { padding: 10px 16px; font-size: 13px; }
-  .header { padding: 12px 16px; }
-  .header h1 { font-size: 17px; }
-  .tabs { padding: 8px 16px 0; top: 49px; }
-}
-</style>
+    .logo {
+      font-family: 'Inter', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .logo span {
+      color: var(--accent-tech);
+    }
+
+    .update-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      margin-bottom: 2px;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: rgba(0, 0, 0, 0.03);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-tech-soft);
+      color: var(--accent-tech);
+      font-weight: 600;
+    }
+
+    .nav-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .nav-item .count {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid var(--glass-border);
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ===== MAIN ===== */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 32px 40px;
+    }
+
+    /* Top Tabs */
+    .main-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 28px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 4px;
+      width: fit-content;
+      backdrop-filter: blur(10px);
+    }
+
+    .main-tab {
+      padding: 8px 20px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .main-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .main-tab.active {
+      background: #fff;
+      color: var(--text-primary);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      margin-top: 8px;
+    }
+
+    .section-accent {
+      width: 4px;
+      height: 24px;
+      border-radius: 2px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .section-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+
+    /* Category section visibility */
+    .category-section { display: none; }
+    .category-section.visible { display: block; }
+
+    /* News Grid */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 44px;
+    }
+
+    /* Card */
+    .news-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 0;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    .news-card:hover {
+      background: var(--glass-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    /* Source-specific left accent stripe */
+    .card-accent-stripe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 4px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px 14px 24px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .source-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .source-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .source-info:hover .source-name {
+      color: var(--accent-tech);
+    }
+
+    .source-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+
+    .source-url {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .source-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .card-headlines {
+      list-style: none;
+      padding: 4px 0;
+    }
+
+    .card-headlines li {
+      padding: 9px 20px 9px 24px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-headlines li:last-child {
+      border-bottom: none;
+    }
+
+    .card-headlines li .headline-icon {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      margin-top: 3px;
+      color: var(--text-muted);
+      opacity: 0.5;
+      transition: opacity 0.15s ease;
+    }
+
+    .card-headlines li:hover .headline-icon {
+      opacity: 0.8;
+    }
+
+    .card-headlines .headline-content {
+      flex: 1;
+    }
+
+    .card-headlines a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.55;
+      display: block;
+      transition: color 0.15s ease;
+    }
+
+    .card-headlines a:hover {
+      color: var(--accent-tech);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        margin-left: 0;
+        padding: 20px 16px;
+      }
+
+      .news-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Tab content visibility */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Ranking section */
+    .ranking-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 44px;
+    }
+
+    .ranking-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 0;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    .ranking-card:hover {
+      background: var(--glass-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+
+    .ranking-list {
+      list-style: none;
+      padding: 4px 0;
+    }
+
+    .ranking-list li {
+      padding: 10px 20px 10px 24px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .ranking-list li:last-child {
+      border-bottom: none;
+    }
+
+    .ranking-number {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .ranking-number.rank-1 {
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: #fff;
+    }
+
+    .ranking-number.rank-2 {
+      background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+      color: #fff;
+    }
+
+    .ranking-number.rank-3 {
+      background: linear-gradient(135deg, #b45309, #d97706);
+      color: #fff;
+    }
+
+    .ranking-number.rank-other {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--text-muted);
+    }
+
+    .ranking-list a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.55;
+      display: block;
+      transition: color 0.15s ease;
+      flex: 1;
+    }
+
+    .ranking-list a:hover {
+      color: var(--accent-tech);
+    }
+
+    .ranking-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+  </style>
 </head>
+
 <body>
-<div class="blob blob--purple"></div>
-<div class="blob blob--pink"></div>
 
-<header class="header">
-  <h1>Daily News Dashboard</h1>
-  <span class="updated">{{ updated_at }}</span>
-</header>
+  <div class="ambient-blob"></div>
 
-<nav class="tabs">
-  <button class="tab active">Today's News</button>
-</nav>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="logo">News<span>Flow</span></div>
+      <div class="update-time">最終更新: {{ updated_at }}</div>
 
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-label">Categories</div>
-    <button class="nav-item active" data-category="all">
-      <span class="nav-dot" style="background: #fff;"></span>
-      ALL
-      <span class="nav-badge">{% set total_all = [] %}{% for key, data in category_data.items() %}{% if total_all.append(data.total) %}{% endif %}{% endfor %}{{ total_all | sum }}</span>
-    </button>
-    {% for key, info in categories.items() %}
-    <button class="nav-item" data-category="{{ key }}">
-      <span class="nav-dot" style="background: {{ info.color }};"></span>
-      {{ info.label }}
-      <span class="nav-badge">{{ category_data[key].total }}</span>
-    </button>
-    {% endfor %}
-  </aside>
+      <div class="nav-section-label">メインメニュー</div>
+      <button class="nav-item active" data-category="all">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        すべて
+        <span class="count">{% set ns = namespace(total=0) %}{% for key, data in category_data.items() %}{% set ns.total = ns.total + data.total %}{% endfor %}{{ ns.total }}</span>
+      </button>
 
-  <main class="main">
-    {% for cat_key, data in category_data.items() %}
-    <div class="category-section" data-cat="{{ cat_key }}">
-      {% for site in data.sites %}
-      <div class="site-card">
-        <div class="site-card-header">
-          <span class="cat-dot" style="background: {{ data.color }};"></span>
-          {{ site.name }}
-        </div>
-        <ul class="article-list">
-          {% for item in site["items"] %}
-          <li class="article-item">
-            <a href="{{ item.link }}" target="_blank" rel="noopener">{{ item.title }}</a>
-          </li>
-          {% endfor %}
-        </ul>
+      <div class="nav-section-label">カテゴリ</div>
+      {%- set displayed_categories = {} %}
+      {%- for key, info in categories.items() %}
+        {%- if info.label not in displayed_categories %}
+          {%- set _ = displayed_categories.update({info.label: true}) %}
+          {%- set ns_cat = namespace(cat_total=0, cat_sources=0) %}
+          {%- for k2, d2 in category_data.items() %}
+            {%- if categories[k2].label == info.label %}
+              {%- set ns_cat.cat_total = ns_cat.cat_total + d2.total %}
+              {%- set ns_cat.cat_sources = ns_cat.cat_sources + (d2.sites | length) %}
+            {%- endif %}
+          {%- endfor %}
+      <button class="nav-item" data-category="{{ info.label }}">
+        <span class="dot" style="background:{{ info.color }}"></span>
+        {{ info.label }}
+        <span class="count">{{ ns_cat.cat_total }}</span>
+      </button>
+        {%- endif %}
+      {%- endfor %}
+
+      <div class="nav-section-label">ソース一覧</div>
+      {% for site in all_sites %}
+      <div class="nav-item" style="font-size:12px">
+        <span class="dot" style="background:{{ site.accent_color }};width:6px;height:6px"></span>
+        {{ site.name }}
       </div>
       {% endfor %}
-    </div>
-    {% endfor %}
-  </main>
-</div>
 
-<script>
-(function() {
-  var navItems = document.querySelectorAll('.nav-item');
-  var sections = document.querySelectorAll('.category-section');
+      <div class="sidebar-footer">
+        Daily News Dashboard<br>
+        Powered by RSS + GitHub Actions
+      </div>
+    </aside>
 
-  function show(category) {
-    navItems.forEach(function(btn) {
-      btn.classList.toggle('active', btn.getAttribute('data-category') === category);
-    });
-    sections.forEach(function(sec) {
-      if (category === 'all') {
-        sec.classList.add('visible');
-      } else {
-        sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
+    <!-- MAIN -->
+    <main class="main">
+      <!-- Main Tabs -->
+      <div class="main-tabs">
+        <div class="main-tab active" data-tab="news">Today's News</div>
+        <div class="main-tab" data-tab="ranking">Rankings</div>
+      </div>
+
+      <!-- News Tab Content -->
+      <div class="tab-content active" id="tab-news">
+      {%- set rendered_labels = {} %}
+      {%- for cat_key, data in category_data.items() %}
+        {%- set cat_label = categories[cat_key].label %}
+        {%- set cat_color = categories[cat_key].color %}
+        {%- if cat_label not in rendered_labels %}
+          {%- set _ = rendered_labels.update({cat_label: true}) %}
+          {# Gather all sites for this merged label #}
+          {%- set ns_sec = namespace(all_sites=[], total=0, source_count=0) %}
+          {%- for k2, d2 in category_data.items() %}
+            {%- if categories[k2].label == cat_label %}
+              {%- for s in d2.sites %}
+                {%- set ns_sec.all_sites = ns_sec.all_sites + [s] %}
+              {%- endfor %}
+              {%- set ns_sec.total = ns_sec.total + d2.total %}
+              {%- set ns_sec.source_count = ns_sec.source_count + (d2.sites | length) %}
+            {%- endif %}
+          {%- endfor %}
+
+      <div class="category-section" data-cat="{{ cat_label }}">
+        <div class="section-header">
+          <div class="section-accent" style="background: {{ cat_color }};"></div>
+          <div class="section-title">{{ cat_label }}</div>
+          <div class="section-count">{{ ns_sec.source_count }} sources · {{ ns_sec.total }} articles</div>
+        </div>
+        <div class="news-grid">
+          {%- for site in ns_sec.all_sites %}
+          <div class="news-card">
+            <div class="card-accent-stripe" style="background: {{ site.accent_color }};"></div>
+            <div class="card-header">
+              <div class="source-icon" style="background: {{ site.icon_gradient }};">{{ site.icon }}</div>
+              <a href="{{ site.site_url }}" target="_blank" rel="noopener" class="source-info">
+                <div class="source-name">{{ site.name }}</div>
+                <div class="source-url">{{ site.domain }}</div>
+              </a>
+              <div class="source-badge" style="background: {{ site.accent_color }}11; color: {{ site.accent_color }};">{{ site.badge }}</div>
+            </div>
+            <ul class="card-headlines">
+              {%- for item in site["items"] %}
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="{{ item.link }}" target="_blank" rel="noopener">{{ item.title }}</a>
+                </div>
+              </li>
+              {%- endfor %}
+            </ul>
+          </div>
+          {%- endfor %}
+        </div>
+      </div>
+        {%- endif %}
+      {%- endfor %}
+      </div>
+
+      <!-- Rankings Tab Content -->
+      <div class="tab-content" id="tab-ranking">
+        <div class="section-header">
+          <div class="section-accent" style="background: var(--accent-tech);"></div>
+          <div class="section-title">Popular Rankings</div>
+          <div class="section-count">{{ ranking_data | length }} sources</div>
+        </div>
+        {%- if ranking_data %}
+        <div class="ranking-grid">
+          {%- for rsite in ranking_data %}
+          <div class="ranking-card">
+            <div class="card-accent-stripe" style="background: {{ rsite.accent_color }};"></div>
+            <div class="card-header">
+              <div class="source-icon" style="background: {{ rsite.icon_gradient }};">{{ rsite.icon }}</div>
+              <a href="{{ rsite.site_url }}" target="_blank" rel="noopener" class="source-info">
+                <div class="source-name">{{ rsite.name }}</div>
+                <div class="source-url">{{ rsite.domain }}</div>
+              </a>
+              <div class="source-badge" style="background: {{ rsite.accent_color }}11; color: {{ rsite.accent_color }};">{{ rsite.badge }}</div>
+            </div>
+            <ol class="ranking-list">
+              {%- for item in rsite["items"] %}
+              <li>
+                <span class="ranking-number {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% else %}rank-other{% endif %}">{{ loop.index }}</span>
+                <a href="{{ item.link }}" target="_blank" rel="noopener">{{ item.title }}</a>
+              </li>
+              {%- endfor %}
+            </ol>
+          </div>
+          {%- endfor %}
+        </div>
+        {%- else %}
+        <div class="ranking-empty">No ranking data available</div>
+        {%- endif %}
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Sidebar category navigation
+    (function () {
+      var navItems = document.querySelectorAll('.nav-item[data-category]');
+      var sections = document.querySelectorAll('.category-section');
+
+      function show(category) {
+        navItems.forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+        });
+        sections.forEach(function (sec) {
+          if (category === 'all') {
+            sec.classList.add('visible');
+          } else {
+            sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
+          }
+        });
       }
-    });
-  }
 
-  navItems.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      show(this.getAttribute('data-category'));
-    });
-  });
+      navItems.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          show(this.getAttribute('data-category'));
+        });
+      });
 
-  // Default: show all
-  show('all');
-})();
-</script>
+      // Default: show all
+      show('all');
+    })();
+
+    // Main tab switching (News / Rankings)
+    document.querySelectorAll('.main-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.main-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var target = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content').forEach(function (tc) {
+          tc.classList.toggle('active', tc.id === 'tab-' + target);
+        });
+        // Show sidebar category nav only on news tab
+        var sidebar = document.querySelector('.sidebar');
+        var catButtons = sidebar ? sidebar.querySelectorAll('.nav-item[data-category]') : [];
+        catButtons.forEach(function (btn) {
+          btn.style.display = (target === 'news') ? '' : 'none';
+        });
+        var catLabels = sidebar ? sidebar.querySelectorAll('.nav-section-label') : [];
+        // Hide "カテゴリ" label when on ranking tab
+        catLabels.forEach(function (lbl) {
+          if (lbl.textContent.trim() === 'カテゴリ') {
+            lbl.style.display = (target === 'news') ? '' : 'none';
+          }
+        });
+      });
+    });
+  </script>
 </body>
+
 </html>
