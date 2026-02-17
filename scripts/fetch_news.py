@@ -4,7 +4,8 @@
 import os
 import re
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urljoin
 
 import feedparser
 import requests
@@ -13,11 +14,38 @@ from jinja2 import Environment, FileSystemLoader
 
 # Add scripts directory to path so config can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import SITES, CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS
+from config import CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES
 
 JST = timezone(timedelta(hours=9))
 USER_AGENT = "NewsDashboard/1.0 (+https://github.com/Tomotaka-u/news-dashboard)"
 REQUEST_TIMEOUT = 15
+
+
+def sanitize_text(text):
+    """Normalize text spacing for consistent rendering and deduplication."""
+    return re.sub(r"\s+", " ", text or "").strip()
+
+
+def to_absolute_url(base_url, href):
+    """Normalize a possibly-relative URL using a base URL."""
+    href = (href or "").strip()
+    if not href:
+        return ""
+    return urljoin(base_url, href)
+
+
+def append_ranking_item(items, seen, title, href, base_url, min_title_length=1):
+    """Append ranking item if it has a unique URL and meaningful title."""
+    clean_title = sanitize_text(title)
+    if len(clean_title) < min_title_length:
+        return
+
+    link = to_absolute_url(base_url, href)
+    if not link or link in seen:
+        return
+
+    seen.add(link)
+    items.append({"title": clean_title, "link": link})
 
 
 def fetch_feed(site):
@@ -29,17 +57,234 @@ def fetch_feed(site):
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        print(f"[FEED ERROR] {site['name']} request failed: {exc}")
+        return []
+
+    try:
         feed = feedparser.parse(resp.content)
+        if getattr(feed, "bozo", False):
+            print(f"[FEED WARN] {site['name']} malformed feed: {feed.bozo_exception}")
+
         items = []
+        base_url = site.get("site_url", site["url"])
         for entry in feed.entries[:MAX_ITEMS_PER_SITE]:
-            title = entry.get("title", "").strip()
-            link = entry.get("link", "").strip()
+            title = sanitize_text(entry.get("title", ""))
+            link = to_absolute_url(base_url, entry.get("link", ""))
             if title and link:
                 items.append({"title": title, "link": link})
         return items
-    except Exception as e:
-        print(f"[ERROR] {site['name']}: {e}")
+    except Exception as exc:
+        print(f"[FEED ERROR] {site['name']} parse failed: {exc}")
         return []
+
+
+def extract_techcrunch_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    top_headlines = None
+    for el in soup.find_all(string=lambda t: t and "Top Headlines" in t):
+        top_headlines = el.find_parent()
+        break
+
+    if top_headlines:
+        container = top_headlines.find_parent("div") or top_headlines.find_parent("section")
+        if container:
+            for a_tag in container.find_all("a", class_="loop-card__title-link", href=True):
+                append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 10)
+                if len(items) >= MAX_RANKING_ITEMS:
+                    break
+    return items
+
+
+def extract_gizmodo_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    ranking_heading = soup.find("h2", class_="s-Ranking_Heading")
+    if ranking_heading:
+        container = ranking_heading.find_parent("div") or ranking_heading.find_parent("section")
+        if container:
+            for a_tag in container.find_all("a", href=True):
+                link = to_absolute_url(ranking_url, a_tag.get("href"))
+                if "gizmodo.jp" not in link:
+                    continue
+                append_ranking_item(items, seen, a_tag.get_text(strip=True), link, ranking_url, 10)
+                if len(items) >= MAX_RANKING_ITEMS:
+                    break
+    return items
+
+
+def extract_theverge_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for heading in soup.find_all("h2"):
+        if "Most Popular" not in heading.get_text(strip=True):
+            continue
+        container = heading.find_parent("div") or heading.find_parent("section")
+        if container:
+            for a_tag in container.find_all("a", href=True):
+                append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 15)
+                if len(items) >= MAX_RANKING_ITEMS:
+                    break
+        break
+    return items
+
+
+def extract_itmedia_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for h3 in soup.find_all("h3"):
+        a_tag = h3.find("a")
+        if not a_tag or not a_tag.get("href"):
+            continue
+        title = a_tag.get_text(strip=True)
+        if title.startswith("'"):  # Skip JS template strings.
+            continue
+        append_ranking_item(items, seen, title, a_tag.get("href"), ranking_url, 4)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
+def extract_hackernews_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for span in soup.find_all("span", class_="titleline"):
+        a_tag = span.find("a")
+        if not a_tag or not a_tag.get("href"):
+            continue
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 4)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
+def extract_fashionsnap_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag.get("href")
+        if not re.match(r"/article/\d{4}-", href or ""):
+            continue
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
+def extract_wwdjapan_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag.get("href")
+        if "articles/" not in (href or ""):
+            continue
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
+def extract_nikkei_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag.get("href")
+        if "/article/" not in (href or ""):
+            continue
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
+def extract_jdn_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    ranking_heading = None
+    for heading in soup.find_all(["h2", "h3", "h4"]):
+        if "ランキング" in heading.get_text():
+            ranking_heading = heading
+            break
+
+    if ranking_heading:
+        parent = ranking_heading.find_parent("section") or ranking_heading.find_parent("div")
+        if parent:
+            for a_tag in parent.find_all("a", href=True):
+                href = to_absolute_url(ranking_url, a_tag.get("href"))
+                if "japandesign.ne.jp" not in href or "/ranking/" in href:
+                    continue
+                title = re.sub(r"^\d+", "", a_tag.get_text(strip=True)).strip()
+                append_ranking_item(items, seen, title, href, ranking_url, 5)
+                if len(items) >= MAX_RANKING_ITEMS:
+                    break
+    return items
+
+
+def extract_bbc_ranking(soup, ranking_url):
+    items = []
+    seen = set()
+    most_read = None
+    for heading in soup.find_all("h2"):
+        if "most read" in heading.get_text(strip=True).lower():
+            most_read = heading
+            break
+
+    if most_read:
+        section = most_read.find_parent("section") or most_read.find_parent("div")
+        if section:
+            for a_tag in section.find_all("a", href=True):
+                h2_tag = a_tag.find("h2")
+                title = h2_tag.get_text(strip=True) if h2_tag else a_tag.get_text(strip=True)
+                append_ranking_item(items, seen, title, a_tag.get("href"), ranking_url, 10)
+                if len(items) >= MAX_RANKING_ITEMS:
+                    break
+    return items
+
+
+def extract_generic_ranking(soup, ranking_url):
+    """Fallback parser used when a site-specific parser yields no items."""
+    items = []
+    seen = set()
+    keyword_en = ("ranking", "most read", "most popular", "top headlines")
+    keyword_ja = ("ランキング", "人気", "アクセス")
+
+    for heading in soup.find_all(["h2", "h3", "h4"]):
+        title = heading.get_text(" ", strip=True)
+        lower = title.lower()
+        if not any(k in lower for k in keyword_en) and not any(k in title for k in keyword_ja):
+            continue
+
+        section = heading.find_parent("section") or heading.find_parent("div") or heading.parent
+        if not section:
+            continue
+
+        for a_tag in section.find_all("a", href=True):
+            append_ranking_item(
+                items,
+                seen,
+                a_tag.get_text(" ", strip=True),
+                a_tag.get("href"),
+                ranking_url,
+                min_title_length=8,
+            )
+            if len(items) >= MAX_RANKING_ITEMS:
+                return items
+    return items
+
+
+RANKING_EXTRACTORS = {
+    "techcrunch": extract_techcrunch_ranking,
+    "gizmodo": extract_gizmodo_ranking,
+    "theverge": extract_theverge_ranking,
+    "itmedia": extract_itmedia_ranking,
+    "hackernews": extract_hackernews_ranking,
+    "fashionsnap": extract_fashionsnap_ranking,
+    "wwdjapan": extract_wwdjapan_ranking,
+    "nikkei": extract_nikkei_ranking,
+    "jdn": extract_jdn_ranking,
+    "bbc": extract_bbc_ranking,
+}
 
 
 def fetch_ranking(site):
@@ -56,79 +301,61 @@ def fetch_ranking(site):
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
-
-        # Detect encoding
-        if ranking_type == "itmedia":
-            content = resp.content.decode("shift_jis", errors="replace")
-        else:
-            content = resp.text
-
-        soup = BeautifulSoup(content, "html.parser")
-        items = []
-
-        if ranking_type == "itmedia":
-            # ITmedia: <h3> tags containing <a> links (skip first 2 which are template strings)
-            for h3 in soup.find_all("h3"):
-                a_tag = h3.find("a")
-                if a_tag and a_tag.get("href") and a_tag.get_text(strip=True):
-                    title = a_tag.get_text(strip=True)
-                    link = a_tag["href"]
-                    if title.startswith("'"):  # skip JS template strings
-                        continue
-                    items.append({"title": title, "link": link})
-                    if len(items) >= MAX_RANKING_ITEMS:
-                        break
-
-        elif ranking_type == "hackernews":
-            # Hacker News: class="titleline" containing <a>
-            for span in soup.find_all("span", class_="titleline"):
-                a_tag = span.find("a")
-                if a_tag and a_tag.get("href") and a_tag.get_text(strip=True):
-                    title = a_tag.get_text(strip=True)
-                    link = a_tag["href"]
-                    if not link.startswith("http"):
-                        link = "https://news.ycombinator.com/" + link
-                    items.append({"title": title, "link": link})
-                    if len(items) >= MAX_RANKING_ITEMS:
-                        break
-
-        elif ranking_type == "fashionsnap":
-            # FASHIONSNAP: article links matching /article/YYYY-
-            seen = set()
-            for a_tag in soup.find_all("a", href=True):
-                href = a_tag["href"]
-                if re.match(r"/article/\d{4}-", href):
-                    text = a_tag.get_text(strip=True)
-                    if text and len(text) > 10 and href not in seen:
-                        seen.add(href)
-                        link = "https://www.fashionsnap.com" + href
-                        items.append({"title": text, "link": link})
-                        if len(items) >= MAX_RANKING_ITEMS:
-                            break
-
-        elif ranking_type == "wwdjapan":
-            # WWDJAPAN: article links
-            seen = set()
-            for a_tag in soup.find_all("a", href=True):
-                href = a_tag["href"]
-                if "articles/" in href:
-                    text = a_tag.get_text(strip=True)
-                    if text and len(text) > 10 and href not in seen:
-                        seen.add(href)
-                        if not href.startswith("http"):
-                            href = "https://www.wwdjapan.com" + href
-                        items.append({"title": text, "link": href})
-                        if len(items) >= MAX_RANKING_ITEMS:
-                            break
-
-        return items
-    except Exception as e:
-        print(f"[RANKING ERROR] {site['name']}: {e}")
+    except requests.exceptions.RequestException as exc:
+        print(f"[RANKING ERROR] {site['name']} request failed: {exc}")
         return []
 
+    if ranking_type == "itmedia":
+        content = resp.content.decode("shift_jis", errors="replace")
+    else:
+        content = resp.text
+    soup = BeautifulSoup(content, "html.parser")
 
-def main():
-    # Collect articles grouped by category then by site
+    extractor = RANKING_EXTRACTORS.get(ranking_type)
+    if not extractor:
+        print(f"[RANKING WARN] {site['name']} unknown ranking_type='{ranking_type}'. Using generic parser.")
+        return extract_generic_ranking(soup, ranking_url)[:MAX_RANKING_ITEMS]
+
+    try:
+        items = extractor(soup, ranking_url)
+    except Exception as exc:
+        print(f"[RANKING ERROR] {site['name']} parser '{ranking_type}' failed: {exc}")
+        items = []
+
+    if items:
+        return items[:MAX_RANKING_ITEMS]
+
+    fallback_items = extract_generic_ranking(soup, ranking_url)
+    if fallback_items:
+        print(
+            f"[RANKING WARN] {site['name']} parser '{ranking_type}' returned 0 items. "
+            f"Fallback found {len(fallback_items)} items."
+        )
+    else:
+        print(
+            f"[RANKING WARN] {site['name']} parser '{ranking_type}' returned 0 items. "
+            "Fallback also found 0 items."
+        )
+    return fallback_items[:MAX_RANKING_ITEMS]
+
+
+def build_site_view_model(site, items):
+    """Build UI-facing site payload with defaults in one place."""
+    return {
+        "name": site["name"],
+        "items": items,
+        "icon": site.get("icon", "?"),
+        "css_class": site.get("css_class", ""),
+        "domain": site.get("domain", ""),
+        "badge": site.get("badge", ""),
+        "site_url": site.get("site_url", "#"),
+        "icon_gradient": site.get("icon_gradient", "linear-gradient(135deg, #888, #aaa)"),
+        "accent_color": site.get("accent_color", "#888"),
+    }
+
+
+def init_category_data():
+    """Initialize category buckets before fetching feeds."""
     category_data = {}
     for cat_key, cat_info in CATEGORIES.items():
         category_data[cat_key] = {
@@ -137,8 +364,38 @@ def main():
             "sites": [],
             "total": 0,
         }
+    return category_data
 
-    # Collect ranking data
+
+def build_display_categories(category_data):
+    """Merge internal categories by shared display labels for the template."""
+    display_by_label = {}
+    display_categories = []
+
+    for cat_key, cat_info in CATEGORIES.items():
+        label = cat_info["label"]
+        bucket = display_by_label.get(label)
+        if bucket is None:
+            bucket = {
+                "label": label,
+                "color": cat_info["color"],
+                "sites": [],
+                "total": 0,
+                "source_count": 0,
+            }
+            display_by_label[label] = bucket
+            display_categories.append(bucket)
+
+        cat_bucket = category_data.get(cat_key, {"sites": [], "total": 0})
+        bucket["sites"].extend(cat_bucket["sites"])
+        bucket["total"] += cat_bucket["total"]
+        bucket["source_count"] += len(cat_bucket["sites"])
+
+    return display_categories
+
+
+def main():
+    category_data = init_category_data()
     ranking_data = []
 
     for site in SITES:
@@ -147,38 +404,19 @@ def main():
         items = fetch_feed(site)
         print(f"  -> {len(items)} items")
         if items:
-            category_data[cat]["sites"].append({
-                "name": site["name"],
-                "items": items,
-                "icon": site.get("icon", "?"),
-                "css_class": site.get("css_class", ""),
-                "domain": site.get("domain", ""),
-                "badge": site.get("badge", ""),
-                "site_url": site.get("site_url", "#"),
-                "icon_gradient": site.get("icon_gradient", "linear-gradient(135deg, #888, #aaa)"),
-                "accent_color": site.get("accent_color", "#888"),
-            })
+            category_data[cat]["sites"].append(build_site_view_model(site, items))
             category_data[cat]["total"] += len(items)
 
-        # Fetch ranking if configured
         if site.get("ranking_url"):
             print(f"  Fetching ranking: {site['name']} ...")
             ranking_items = fetch_ranking(site)
             print(f"  -> {len(ranking_items)} ranking items")
             if ranking_items:
-                ranking_data.append({
-                    "name": site["name"],
-                    "items": ranking_items,
-                    "icon": site.get("icon", "?"),
-                    "css_class": site.get("css_class", ""),
-                    "domain": site.get("domain", ""),
-                    "badge": site.get("badge", ""),
-                    "site_url": site.get("site_url", "#"),
-                    "icon_gradient": site.get("icon_gradient", "linear-gradient(135deg, #888, #aaa)"),
-                    "accent_color": site.get("accent_color", "#888"),
-                })
+                ranking_data.append(build_site_view_model(site, ranking_items))
 
-    # Render HTML
+    display_categories = build_display_categories(category_data)
+    overall_total = sum(category["total"] for category in display_categories)
+
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     template_dir = os.path.join(project_root, "templates")
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
@@ -186,8 +424,8 @@ def main():
 
     now_jst = datetime.now(JST)
     html = template.render(
-        categories=CATEGORIES,
-        category_data=category_data,
+        display_categories=display_categories,
+        overall_total=overall_total,
         all_sites=SITES,
         ranking_data=ranking_data,
         updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
@@ -196,8 +434,8 @@ def main():
     docs_dir = os.path.join(project_root, "docs")
     os.makedirs(docs_dir, exist_ok=True)
     output_path = os.path.join(docs_dir, "index.html")
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(html)
+    with open(output_path, "w", encoding="utf-8") as file_obj:
+        file_obj.write(html)
 
     print(f"\nGenerated: {output_path}")
     print(f"Updated at: {now_jst.strftime('%Y-%m-%d %H:%M JST')}")

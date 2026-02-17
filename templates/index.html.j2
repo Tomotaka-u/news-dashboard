@@ -223,6 +223,9 @@
       color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.2s ease;
+      border: none;
+      background: transparent;
+      font-family: inherit;
     }
 
     .main-tab:hover {
@@ -234,6 +237,11 @@
       color: var(--text-primary);
       font-weight: 600;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .main-tab:focus-visible {
+      outline: 2px solid var(--accent-tech);
+      outline-offset: 2px;
     }
 
     /* Section Header */
@@ -565,27 +573,16 @@
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
         すべて
-        <span class="count">{% set ns = namespace(total=0) %}{% for key, data in category_data.items() %}{% set ns.total = ns.total + data.total %}{% endfor %}{{ ns.total }}</span>
+        <span class="count">{{ overall_total }}</span>
       </button>
 
       <div class="nav-section-label">カテゴリ</div>
-      {%- set displayed_categories = {} %}
-      {%- for key, info in categories.items() %}
-        {%- if info.label not in displayed_categories %}
-          {%- set _ = displayed_categories.update({info.label: true}) %}
-          {%- set ns_cat = namespace(cat_total=0, cat_sources=0) %}
-          {%- for k2, d2 in category_data.items() %}
-            {%- if categories[k2].label == info.label %}
-              {%- set ns_cat.cat_total = ns_cat.cat_total + d2.total %}
-              {%- set ns_cat.cat_sources = ns_cat.cat_sources + (d2.sites | length) %}
-            {%- endif %}
-          {%- endfor %}
-      <button class="nav-item" data-category="{{ info.label }}">
-        <span class="dot" style="background:{{ info.color }}"></span>
-        {{ info.label }}
-        <span class="count">{{ ns_cat.cat_total }}</span>
+      {%- for category in display_categories %}
+      <button class="nav-item" data-category="{{ category.label }}">
+        <span class="dot" style="background:{{ category.color }}"></span>
+        {{ category.label }}
+        <span class="count">{{ category.total }}</span>
       </button>
-        {%- endif %}
       {%- endfor %}
 
       <div class="nav-section-label">ソース一覧</div>
@@ -605,39 +602,24 @@
     <!-- MAIN -->
     <main class="main">
       <!-- Main Tabs -->
-      <div class="main-tabs">
-        <div class="main-tab active" data-tab="news">Today's News</div>
-        <div class="main-tab" data-tab="ranking">Rankings</div>
+      <div class="main-tabs" role="tablist" aria-label="Main content tabs">
+        <button type="button" id="tab-btn-news" class="main-tab active" data-tab="news" role="tab" aria-selected="true"
+          aria-controls="tab-news">Today's News</button>
+        <button type="button" id="tab-btn-ranking" class="main-tab" data-tab="ranking" role="tab" aria-selected="false"
+          aria-controls="tab-ranking">Rankings</button>
       </div>
 
       <!-- News Tab Content -->
-      <div class="tab-content active" id="tab-news">
-      {%- set rendered_labels = {} %}
-      {%- for cat_key, data in category_data.items() %}
-        {%- set cat_label = categories[cat_key].label %}
-        {%- set cat_color = categories[cat_key].color %}
-        {%- if cat_label not in rendered_labels %}
-          {%- set _ = rendered_labels.update({cat_label: true}) %}
-          {# Gather all sites for this merged label #}
-          {%- set ns_sec = namespace(all_sites=[], total=0, source_count=0) %}
-          {%- for k2, d2 in category_data.items() %}
-            {%- if categories[k2].label == cat_label %}
-              {%- for s in d2.sites %}
-                {%- set ns_sec.all_sites = ns_sec.all_sites + [s] %}
-              {%- endfor %}
-              {%- set ns_sec.total = ns_sec.total + d2.total %}
-              {%- set ns_sec.source_count = ns_sec.source_count + (d2.sites | length) %}
-            {%- endif %}
-          {%- endfor %}
-
-      <div class="category-section" data-cat="{{ cat_label }}">
+      <div class="tab-content active" id="tab-news" role="tabpanel" aria-labelledby="tab-btn-news">
+      {%- for category in display_categories %}
+      <div class="category-section" data-cat="{{ category.label }}">
         <div class="section-header">
-          <div class="section-accent" style="background: {{ cat_color }};"></div>
-          <div class="section-title">{{ cat_label }}</div>
-          <div class="section-count">{{ ns_sec.source_count }} sources · {{ ns_sec.total }} articles</div>
+          <div class="section-accent" style="background: {{ category.color }};"></div>
+          <div class="section-title">{{ category.label }}</div>
+          <div class="section-count">{{ category.source_count }} sources · {{ category.total }} articles</div>
         </div>
         <div class="news-grid">
-          {%- for site in ns_sec.all_sites %}
+          {%- for site in category.sites %}
           <div class="news-card">
             <div class="card-accent-stripe" style="background: {{ site.accent_color }};"></div>
             <div class="card-header">
@@ -665,12 +647,11 @@
           {%- endfor %}
         </div>
       </div>
-        {%- endif %}
       {%- endfor %}
       </div>
 
       <!-- Rankings Tab Content -->
-      <div class="tab-content" id="tab-ranking">
+      <div class="tab-content" id="tab-ranking" role="tabpanel" aria-labelledby="tab-btn-ranking">
         <div class="section-header">
           <div class="section-accent" style="background: var(--accent-tech);"></div>
           <div class="section-title">Popular Rankings</div>
@@ -740,8 +721,12 @@
     // Main tab switching (News / Rankings)
     document.querySelectorAll('.main-tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
-        document.querySelectorAll('.main-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.main-tab').forEach(function (t) {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
         tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
         var target = tab.getAttribute('data-tab');
         document.querySelectorAll('.tab-content').forEach(function (tc) {
           tc.classList.toggle('active', tc.id === 'tab-' + target);
