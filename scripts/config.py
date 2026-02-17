@@ -7,6 +7,8 @@ SITES = [
         "site_url": "https://techcrunch.com",
         "icon_gradient": "linear-gradient(135deg, #0a9e01, #23bf1f)",
         "accent_color": "#0a9e01",
+        "ranking_url": "https://techcrunch.com/",
+        "ranking_type": "techcrunch",
     },
     {
         "name": "ITmedia", "url": "https://rss.itmedia.co.jp/rss/2.0/itmedia_all.xml",
@@ -25,6 +27,8 @@ SITES = [
         "site_url": "https://www.gizmodo.jp",
         "icon_gradient": "linear-gradient(135deg, #2b2b2b, #555)",
         "accent_color": "#2b2b2b",
+        "ranking_url": "https://www.gizmodo.jp/",
+        "ranking_type": "gizmodo",
     },
     {
         "name": "The Verge", "url": "https://www.theverge.com/rss/index.xml",
@@ -33,6 +37,8 @@ SITES = [
         "site_url": "https://www.theverge.com",
         "icon_gradient": "linear-gradient(135deg, #6366f1, #818cf8)",
         "accent_color": "#6366f1",
+        "ranking_url": "https://www.theverge.com/",
+        "ranking_type": "theverge",
     },
     {
         "name": "AI News", "url": "https://www.artificialintelligence-news.com/feed/rss/",
@@ -97,6 +103,8 @@ SITES = [
         "site_url": "https://www.japandesign.ne.jp",
         "icon_gradient": "linear-gradient(135deg, #2563eb, #60a5fa)",
         "accent_color": "#2563eb",
+        "ranking_url": "https://www.japandesign.ne.jp/ranking/",
+        "ranking_type": "jdn",
     },
 
     # 経済・ビジネス系
@@ -107,6 +115,8 @@ SITES = [
         "site_url": "https://www.nikkei.com",
         "icon_gradient": "linear-gradient(135deg, #0369a1, #0ea5e9)",
         "accent_color": "#0369a1",
+        "ranking_url": "https://www.nikkei.com/access/",
+        "ranking_type": "nikkei",
     },
 
     {
@@ -136,6 +146,8 @@ SITES = [
         "site_url": "https://www.bbc.co.uk/news",
         "icon_gradient": "linear-gradient(135deg, #991b1b, #dc2626)",
         "accent_color": "#991b1b",
+        "ranking_url": "https://www.bbc.com/news",
+        "ranking_type": "bbc",
     },
 ]
 
