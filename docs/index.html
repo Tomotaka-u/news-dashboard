@@ -316,9 +316,9 @@
       margin-left: 4px;
     }
 
-    /* Category section visibility */
-    .category-section { display: none; }
-    .category-section.visible { display: block; }
+    /* Category section visibility (fallback: visible without JS) */
+    .category-section { display: block; }
+    .js-ready .category-section.hidden { display: none; }
 
     /* News Grid */
     .news-grid {
@@ -481,9 +481,10 @@
       }
     }
 
-    /* Tab content visibility */
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    /* Tab content visibility (fallback: show all without JS) */
+    .tab-content { display: block; }
+    .js-ready .tab-content { display: none; }
+    .js-ready .tab-content.active { display: block; }
 
     /* Ranking section */
     .ranking-grid {
@@ -611,7 +612,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="logo">News<span>Flow</span></div>
-      <div class="update-time">最終更新: 2026-02-17 13:58 JST</div>
+      <div class="update-time">最終更新: 2026-02-17 14:17 JST</div>
 
       <div class="nav-section-label">メインメニュー</div>
       <button class="nav-item category-filter sidebar-category-filter active" data-category="all" aria-pressed="true">
@@ -947,6 +948,15 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
+                  <a href="https://www.gizmodo.jp/2026/02/gtm-instagram-screenshot.html" target="_blank" rel="noopener">あの時もし「スクショ通知」が実装されていたら、インスタの歴史は変わっていた…？</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
                   <a href="https://www.gizmodo.jp/2026/02/ratoc-systems-multi-display-adapter.html" target="_blank" rel="noopener">さよなら配線地獄。簡単にマルチディスプレイ環境を実現するアダプター</a>
                 </div>
               </li>
@@ -1002,15 +1012,6 @@
                 </svg>
                 <div class="headline-content">
                   <a href="https://www.gizmodo.jp/2026/02/yps-s800-gizmart-1.html" target="_blank" rel="noopener">多機能チェアを諦めていた3つの理由と、ついに見つけた「1脚」</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/potr-daiwa.html" target="_blank" rel="noopener">DAIWAの波、来てる。吉田カバンのPOTRとコラボしたバッグがアウトドア好きに刺さる</a>
                 </div>
               </li>
             </ul>
@@ -1466,7 +1467,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/nct-yuta-unbave/" target="_blank" rel="noopener">「揺らぎや迷いに寄り添う存在に」NCT YUTAがジュエリーブランドをプロデュース</a>
+                  <a href="https://www.fashionsnap.com/article/nct-yuta-unbave/" target="_blank" rel="noopener">「自分のスタイルを完成させる最後のピース」NCT YUTAにとってジュエリーとは？</a>
                 </div>
               </li>
               <li>
@@ -1484,7 +1485,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-17/gu-undercover-26ss/" target="_blank" rel="noopener">GU × アンダーカバー再び 「ピーナッツ」とのトリプルコラボアイテムも登場</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-17/gu-undercover-26ss/" target="_blank" rel="noopener">「UG」が「GU×UNDERCOVER」に名称変更 2026年春夏コレクションを発売</a>
                 </div>
               </li>
               <li>
@@ -2162,7 +2163,7 @@
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.gizmodo.jp/2026/02/bon-moment-box.html?cx_click=pc_ranking" target="_blank" rel="noopener">｢帰ってきたらこのボックスに放り込む｣を習慣化して散らからなくなった</a>
+                <a href="https://www.gizmodo.jp/2026/02/rakuten-sale-2026-0216-1.html?cx_click=pc_ranking" target="_blank" rel="noopener">Xiaomiのコレ、頑丈度とコスパが｢強すぎるスマホ｣だぞ</a>
               </li>
             </ol>
           </div>
@@ -2356,7 +2357,7 @@
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.nikkei.com/article/DGXZQODH168XJ0W6A210C2000000/" target="_blank" rel="noopener">りくりゅう逆転の金メダル、フリー歴代最高得点 フィギュアペア</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUB170OWTX10C26A2000000/" target="_blank" rel="noopener">日経平均株価午前451円安、日立株が年初来下げ 循環物色は続く</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
@@ -2377,11 +2378,11 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.bbc.com/news/articles/czx47k34yqxo" target="_blank" rel="noopener">Hillary Clinton accuses Trump administration of Epstein files &#39;cover-up&#39; in BBC interview</a>
+                <a href="https://www.bbc.com/news/articles/cy9gdvl4zv4o" target="_blank" rel="noopener">US Senator Mark Kelly tells BBC he will &#39;seriously consider&#39; White House run</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
-                <a href="https://www.bbc.com/news/articles/cy9gdvl4zv4o" target="_blank" rel="noopener">US Senator Mark Kelly tells BBC he will &#39;seriously consider&#39; White House run</a>
+                <a href="https://www.bbc.com/news/articles/czx47k34yqxo" target="_blank" rel="noopener">Hillary Clinton accuses Trump administration of Epstein files &#39;cover-up&#39; in BBC interview</a>
               </li>
               <li>
                 <span class="ranking-number rank-3">3</span>
@@ -2406,6 +2407,8 @@
   <script>
     // UI state and navigation
     (function () {
+      document.body.classList.add('js-ready');
+
       var STORAGE_KEY = 'newsflow-ui-state-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
@@ -2452,9 +2455,9 @@
         });
         sections.forEach(function (sec) {
           if (category === 'all') {
-            sec.classList.add('visible');
+            sec.classList.remove('hidden');
           } else {
-            sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
+            sec.classList.toggle('hidden', sec.getAttribute('data-cat') !== category);
           }
         });
         state.category = category;
