@@ -3,7 +3,6 @@ name: Update News Dashboard
 on:
   schedule:
     - cron: '0 21 * * *'  # JST 6:00
-    - cron: '0 3 * * *'   # JST 12:00
     - cron: '0 9 * * *'   # JST 18:00
   workflow_dispatch:
 
