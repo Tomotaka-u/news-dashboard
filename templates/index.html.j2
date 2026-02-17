@@ -161,6 +161,11 @@
       text-align: left;
     }
 
+    .nav-item:focus-visible {
+      outline: 2px solid var(--accent-tech);
+      outline-offset: 2px;
+    }
+
     .nav-item:hover {
       background: rgba(0, 0, 0, 0.03);
       color: var(--text-primary);
@@ -193,6 +198,10 @@
       font-size: 11px;
       color: var(--text-muted);
       line-height: 1.6;
+    }
+
+    .source-list-link {
+      text-decoration: none;
     }
 
     /* ===== MAIN ===== */
@@ -240,6 +249,42 @@
     }
 
     .main-tab:focus-visible {
+      outline: 2px solid var(--accent-tech);
+      outline-offset: 2px;
+    }
+
+    .mobile-category-wrap {
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .mobile-category-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .mobile-category-filter {
+      flex-shrink: 0;
+      border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
+      border-radius: 999px;
+      font-size: 12px;
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mobile-category-filter.active {
+      background: var(--accent-tech-soft);
+      color: var(--accent-tech);
+      border-color: rgba(99, 102, 241, 0.25);
+      font-weight: 600;
+    }
+
+    .mobile-category-filter:focus-visible {
       outline: 2px solid var(--accent-tech);
       outline-offset: 2px;
     }
@@ -430,6 +475,10 @@
       .news-grid {
         grid-template-columns: 1fr;
       }
+
+      .mobile-category-wrap {
+        display: block;
+      }
     }
 
     /* Tab content visibility */
@@ -565,7 +614,7 @@
       <div class="update-time">最終更新: {{ updated_at }}</div>
 
       <div class="nav-section-label">メインメニュー</div>
-      <button class="nav-item active" data-category="all">
+      <button class="nav-item category-filter sidebar-category-filter active" data-category="all" aria-pressed="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="7" rx="1" />
           <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -576,9 +625,9 @@
         <span class="count">{{ overall_total }}</span>
       </button>
 
-      <div class="nav-section-label">カテゴリ</div>
+      <div class="nav-section-label" data-role="category-label">カテゴリ</div>
       {%- for category in display_categories %}
-      <button class="nav-item" data-category="{{ category.label }}">
+      <button class="nav-item category-filter sidebar-category-filter" data-category="{{ category.label }}" aria-pressed="false">
         <span class="dot" style="background:{{ category.color }}"></span>
         {{ category.label }}
         <span class="count">{{ category.total }}</span>
@@ -587,10 +636,10 @@
 
       <div class="nav-section-label">ソース一覧</div>
       {% for site in all_sites %}
-      <div class="nav-item" style="font-size:12px">
+      <a href="{{ site.site_url }}" target="_blank" rel="noopener" class="nav-item source-list-link" style="font-size:12px">
         <span class="dot" style="background:{{ site.accent_color }};width:6px;height:6px"></span>
         {{ site.name }}
-      </div>
+      </a>
       {% endfor %}
 
       <div class="sidebar-footer">
@@ -607,6 +656,17 @@
           aria-controls="tab-news">Today's News</button>
         <button type="button" id="tab-btn-ranking" class="main-tab" data-tab="ranking" role="tab" aria-selected="false"
           aria-controls="tab-ranking">Rankings</button>
+      </div>
+
+      <div class="mobile-category-wrap" data-role="mobile-category-wrap">
+        <div class="mobile-category-scroll">
+          <button type="button" class="mobile-category-filter category-filter active" data-category="all" aria-pressed="true">All · {{ overall_total }}</button>
+          {%- for category in display_categories %}
+          <button type="button" class="mobile-category-filter category-filter" data-category="{{ category.label }}" aria-pressed="false">
+            {{ category.label }} · {{ category.total }}
+          </button>
+          {%- endfor %}
+        </div>
       </div>
 
       <!-- News Tab Content -->
@@ -655,7 +715,10 @@
         <div class="section-header">
           <div class="section-accent" style="background: var(--accent-tech);"></div>
           <div class="section-title">Popular Rankings</div>
-          <div class="section-count">{{ ranking_data | length }} sources</div>
+          <div class="section-count">
+            {{ ranking_status.success_sources }} / {{ ranking_status.total_sources }} sources
+            {%- if ranking_status.failed_sources > 0 %} · {{ ranking_status.failed_sources }} failed{%- endif %}
+          </div>
         </div>
         {%- if ranking_data %}
         <div class="ranking-grid">
@@ -682,7 +745,10 @@
           {%- endfor %}
         </div>
         {%- else %}
-        <div class="ranking-empty">No ranking data available</div>
+        <div class="ranking-empty">
+          No ranking data available<br>
+          <small>Last checked: {{ ranking_status.updated_at }}{% if ranking_status.failed_sources > 0 %} · {{ ranking_status.failed_sources }} sources failed{% endif %}</small>
+        </div>
         {%- endif %}
       </div>
 
@@ -690,14 +756,51 @@
   </div>
 
   <script>
-    // Sidebar category navigation
+    // UI state and navigation
     (function () {
-      var navItems = document.querySelectorAll('.nav-item[data-category]');
+      var STORAGE_KEY = 'newsflow-ui-state-v1';
+      var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
+      var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
+      var categoryLabels = document.querySelectorAll('[data-role="category-label"]');
+      var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
       var sections = document.querySelectorAll('.category-section');
+      var tabs = document.querySelectorAll('.main-tab');
+      var tabContents = document.querySelectorAll('.tab-content');
 
-      function show(category) {
-        navItems.forEach(function (btn) {
+      function loadState() {
+        var fallback = { tab: 'news', category: 'all' };
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return {
+            tab: parsed.tab === 'ranking' ? 'ranking' : 'news',
+            category: typeof parsed.category === 'string' ? parsed.category : 'all',
+          };
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function saveState(state) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          // Ignore storage errors and continue with in-memory state.
+        }
+      }
+
+      function categoryExists(category) {
+        if (category === 'all') return true;
+        return Array.prototype.some.call(sections, function (sec) {
+          return sec.getAttribute('data-cat') === category;
+        });
+      }
+
+      function showCategory(category, state) {
+        categoryFilters.forEach(function (btn) {
           btn.classList.toggle('active', btn.getAttribute('data-category') === category);
+          btn.setAttribute('aria-pressed', btn.getAttribute('data-category') === category ? 'true' : 'false');
         });
         sections.forEach(function (sec) {
           if (category === 'all') {
@@ -706,45 +809,55 @@
             sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
           }
         });
+        state.category = category;
+        saveState(state);
       }
 
-      navItems.forEach(function (btn) {
+      function showTab(target, state) {
+        tabs.forEach(function (tab) {
+          var active = tab.getAttribute('data-tab') === target;
+          tab.classList.toggle('active', active);
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+
+        tabContents.forEach(function (content) {
+          content.classList.toggle('active', content.id === 'tab-' + target);
+        });
+
+        var showCategoryUi = target === 'news';
+        sidebarCategoryFilters.forEach(function (btn) {
+          btn.style.display = showCategoryUi ? '' : 'none';
+        });
+        categoryLabels.forEach(function (label) {
+          label.style.display = showCategoryUi ? '' : 'none';
+        });
+        if (mobileCategoryWrap) {
+          mobileCategoryWrap.style.display = showCategoryUi ? '' : 'none';
+        }
+
+        state.tab = target;
+        saveState(state);
+      }
+
+      var state = loadState();
+      if (!categoryExists(state.category)) {
+        state.category = 'all';
+      }
+
+      categoryFilters.forEach(function (btn) {
         btn.addEventListener('click', function () {
-          show(this.getAttribute('data-category'));
+          showCategory(this.getAttribute('data-category'), state);
         });
       });
 
-      // Default: show all
-      show('all');
-    })();
-
-    // Main tab switching (News / Rankings)
-    document.querySelectorAll('.main-tab').forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        document.querySelectorAll('.main-tab').forEach(function (t) {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        var target = tab.getAttribute('data-tab');
-        document.querySelectorAll('.tab-content').forEach(function (tc) {
-          tc.classList.toggle('active', tc.id === 'tab-' + target);
-        });
-        // Show sidebar category nav only on news tab
-        var sidebar = document.querySelector('.sidebar');
-        var catButtons = sidebar ? sidebar.querySelectorAll('.nav-item[data-category]') : [];
-        catButtons.forEach(function (btn) {
-          btn.style.display = (target === 'news') ? '' : 'none';
-        });
-        var catLabels = sidebar ? sidebar.querySelectorAll('.nav-section-label') : [];
-        // Hide "カテゴリ" label when on ranking tab
-        catLabels.forEach(function (lbl) {
-          if (lbl.textContent.trim() === 'カテゴリ') {
-            lbl.style.display = (target === 'news') ? '' : 'none';
-          }
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          showTab(tab.getAttribute('data-tab'), state);
         });
       });
+
+      showCategory(state.category, state);
+      showTab(state.tab, state);
     });
   </script>
 </body>

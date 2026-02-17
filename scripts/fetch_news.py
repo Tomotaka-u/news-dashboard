@@ -397,6 +397,8 @@ def build_display_categories(category_data):
 def main():
     category_data = init_category_data()
     ranking_data = []
+    ranking_total_sources = sum(1 for site in SITES if site.get("ranking_url"))
+    ranking_success_sources = 0
 
     for site in SITES:
         cat = site["category"]
@@ -413,6 +415,7 @@ def main():
             print(f"  -> {len(ranking_items)} ranking items")
             if ranking_items:
                 ranking_data.append(build_site_view_model(site, ranking_items))
+                ranking_success_sources += 1
 
     display_categories = build_display_categories(category_data)
     overall_total = sum(category["total"] for category in display_categories)
@@ -423,11 +426,18 @@ def main():
     template = env.get_template("index.html.j2")
 
     now_jst = datetime.now(JST)
+    ranking_status = {
+        "total_sources": ranking_total_sources,
+        "success_sources": ranking_success_sources,
+        "failed_sources": ranking_total_sources - ranking_success_sources,
+        "updated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+    }
     html = template.render(
         display_categories=display_categories,
         overall_total=overall_total,
         all_sites=SITES,
         ranking_data=ranking_data,
+        ranking_status=ranking_status,
         updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
     )
 
