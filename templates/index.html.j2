@@ -316,9 +316,9 @@
       margin-left: 4px;
     }
 
-    /* Category section visibility */
-    .category-section { display: none; }
-    .category-section.visible { display: block; }
+    /* Category section visibility (fallback: visible without JS) */
+    .category-section { display: block; }
+    .js-ready .category-section.hidden { display: none; }
 
     /* News Grid */
     .news-grid {
@@ -481,9 +481,10 @@
       }
     }
 
-    /* Tab content visibility */
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    /* Tab content visibility (fallback: show all without JS) */
+    .tab-content { display: block; }
+    .js-ready .tab-content { display: none; }
+    .js-ready .tab-content.active { display: block; }
 
     /* Ranking section */
     .ranking-grid {
@@ -758,6 +759,8 @@
   <script>
     // UI state and navigation
     (function () {
+      document.body.classList.add('js-ready');
+
       var STORAGE_KEY = 'newsflow-ui-state-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
@@ -804,9 +807,9 @@
         });
         sections.forEach(function (sec) {
           if (category === 'all') {
-            sec.classList.add('visible');
+            sec.classList.remove('hidden');
           } else {
-            sec.classList.toggle('visible', sec.getAttribute('data-cat') === category);
+            sec.classList.toggle('hidden', sec.getAttribute('data-cat') !== category);
           }
         });
         state.category = category;
