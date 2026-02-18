@@ -273,6 +273,54 @@ def extract_generic_ranking(soup, ranking_url):
     return items
 
 
+def _prtimes_ranking_wrappers(soup):
+    """Return the ordered list of js-ranking-list wrappers from PR Times ranking page.
+
+    Tab order: 旬速(0), いま話題(1), 今日のランキング(2), SNSで話題(3), 今週(4), 今月(5).
+    """
+    return soup.find_all("div", class_="js-ranking-list")
+
+
+def _extract_prtimes_articles(wrapper, base_url, limit):
+    """Extract article items from a PR Times ranking wrapper."""
+    items = []
+    seen = set()
+    if not wrapper:
+        return items
+    for article in wrapper.find_all("article", class_="list-article"):
+        h3 = article.find("h3", class_="list-article__title")
+        a_tag = article.find("a", class_="list-article__link")
+        if not h3 or not a_tag or not a_tag.get("href"):
+            continue
+        title = h3.get_text(strip=True)
+        href = a_tag.get("href")
+        append_ranking_item(items, seen, title, href, base_url, 5)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def extract_prtimes_news(soup, base_url):
+    """Extract '旬速' (trending) items from PR Times ranking page."""
+    wrappers = _prtimes_ranking_wrappers(soup)
+    if not wrappers:
+        return []
+    return _extract_prtimes_articles(wrappers[0], base_url, MAX_ITEMS_PER_SITE)
+
+
+def extract_prtimes_ranking(soup, ranking_url):
+    """Extract '今日のランキング' items from PR Times ranking page."""
+    wrappers = _prtimes_ranking_wrappers(soup)
+    if len(wrappers) < 3:
+        return []
+    return _extract_prtimes_articles(wrappers[2], ranking_url, MAX_RANKING_ITEMS)
+
+
+SCRAPE_NEWS_EXTRACTORS = {
+    "prtimes_news": extract_prtimes_news,
+}
+
+
 RANKING_EXTRACTORS = {
     "techcrunch": extract_techcrunch_ranking,
     "gizmodo": extract_gizmodo_ranking,
@@ -284,7 +332,41 @@ RANKING_EXTRACTORS = {
     "nikkei": extract_nikkei_ranking,
     "jdn": extract_jdn_ranking,
     "bbc": extract_bbc_ranking,
+    "prtimes": extract_prtimes_ranking,
 }
+
+
+def fetch_scrape_news(site):
+    """Fetch news items from a site via HTML scraping (non-RSS)."""
+    url = site["url"]
+    scrape_type = site.get("scrape_type")
+    if not url or not scrape_type:
+        return []
+
+    try:
+        resp = requests.get(
+            url,
+            headers={"User-Agent": USER_AGENT},
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        print(f"[SCRAPE ERROR] {site['name']} request failed: {exc}")
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    extractor = SCRAPE_NEWS_EXTRACTORS.get(scrape_type)
+    if not extractor:
+        print(f"[SCRAPE WARN] {site['name']} unknown scrape_type='{scrape_type}'")
+        return []
+
+    try:
+        items = extractor(soup, url)
+    except Exception as exc:
+        print(f"[SCRAPE ERROR] {site['name']} parser '{scrape_type}' failed: {exc}")
+        items = []
+
+    return items[:MAX_ITEMS_PER_SITE]
 
 
 def fetch_ranking(site):
@@ -403,7 +485,10 @@ def main():
     for site in SITES:
         cat = site["category"]
         print(f"Fetching: {site['name']} ...")
-        items = fetch_feed(site)
+        if site.get("type") == "scrape":
+            items = fetch_scrape_news(site)
+        else:
+            items = fetch_feed(site)
         print(f"  -> {len(items)} items")
         if items:
             category_data[cat]["sites"].append(build_site_view_model(site, items))

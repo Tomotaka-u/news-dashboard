@@ -138,6 +138,18 @@ SITES = [
         "accent_color": "#111111",
     },
 
+    # PR
+    {
+        "name": "PR TIMES", "url": "https://prtimes.jp/ranking/",
+        "category": "business", "type": "scrape", "scrape_type": "prtimes_news",
+        "icon": "PR", "css_class": "prtimes", "domain": "prtimes.jp", "badge": "PR",
+        "site_url": "https://prtimes.jp",
+        "icon_gradient": "linear-gradient(135deg, #0072bc, #00a0e9)",
+        "accent_color": "#0072bc",
+        "ranking_url": "https://prtimes.jp/ranking/",
+        "ranking_type": "prtimes",
+    },
+
     # 一般ニュース
     {
         "name": "BBC News", "url": "https://feeds.bbci.co.uk/news/rss.xml",
