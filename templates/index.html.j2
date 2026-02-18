@@ -502,16 +502,85 @@
       background: var(--accent-tech);
     }
 
+    .swipe-hint {
+      display: none;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      opacity: 0.9;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .swipe-hint.hidden {
+      opacity: 0;
+      transform: translateY(-3px);
+      pointer-events: none;
+    }
+
     @media (max-width: 768px) {
       .tab-indicator {
         display: flex;
+      }
+
+      .swipe-hint {
+        display: block;
       }
     }
 
     /* Tab content visibility (fallback: show all without JS) */
     .tab-content { display: block; }
+
+    /* Desktop: regular tab behavior */
     .js-ready .tab-content { display: none; }
     .js-ready .tab-content.active { display: block; }
+
+    /* Swipe Container */
+    .swipe-container {
+      display: block;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .swipe-slide {
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (max-width: 768px) {
+      .swipe-container {
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+        gap: 12px;
+        padding-inline: 8px;
+        scroll-padding-inline: 8px;
+      }
+
+      .swipe-container::-webkit-scrollbar {
+        display: none;
+      }
+
+      .swipe-slide {
+        width: auto;
+        min-width: calc(100% - 28px);
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+      }
+
+      /* Mobile swipe needs both slides rendered */
+      .js-ready .swipe-container .tab-content {
+        display: block;
+      }
+    }
 
     /* Ranking section */
     .ranking-grid {
@@ -690,6 +759,7 @@
         <span class="tab-indicator-dot active" data-tab="news"></span>
         <span class="tab-indicator-dot" data-tab="ranking"></span>
       </div>
+      <div class="swipe-hint hidden" id="swipe-hint" aria-hidden="true">← スワイプで切り替え →</div>
 
       <div class="mobile-category-wrap" data-role="mobile-category-wrap">
         <div class="mobile-category-scroll">
@@ -702,8 +772,11 @@
         </div>
       </div>
 
+      <!-- Swipe Container -->
+      <div class="swipe-container" id="swipe-container">
+
       <!-- News Tab Content -->
-      <div class="tab-content active" id="tab-news" role="tabpanel" aria-labelledby="tab-btn-news">
+      <div class="swipe-slide tab-content active" id="tab-news" role="tabpanel" aria-labelledby="tab-btn-news">
       {%- for category in display_categories %}
       <div class="category-section" data-cat="{{ category.label }}">
         <div class="section-header">
@@ -744,7 +817,7 @@
       </div>
 
       <!-- Rankings Tab Content -->
-      <div class="tab-content" id="tab-ranking" role="tabpanel" aria-labelledby="tab-btn-ranking">
+      <div class="swipe-slide tab-content" id="tab-ranking" role="tabpanel" aria-labelledby="tab-btn-ranking">
         <div class="section-header">
           <div class="section-accent" style="background: var(--accent-tech);"></div>
           <div class="section-title">Popular Rankings</div>
@@ -784,6 +857,7 @@
         </div>
         {%- endif %}
       </div>
+      </div> <!-- End swipe-container -->
 
     </main>
   </div>
@@ -794,13 +868,23 @@
       document.body.classList.add('js-ready');
 
       var STORAGE_KEY = 'newsflow-ui-state-v1';
+      var SWIPE_HINT_KEY = 'newsflow-swipe-hint-seen-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
       var categoryLabels = document.querySelectorAll('[data-role="category-label"]');
       var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
+      var tabNames = ['news', 'ranking'];
       var tabContents = document.querySelectorAll('.tab-content');
+      var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
+      var swipeHint = document.getElementById('swipe-hint');
+      var swipeContainer = document.getElementById('swipe-container');
+      var mobileQuery = window.matchMedia('(max-width: 768px)');
+
+      function isMobileView() {
+        return mobileQuery.matches;
+      }
 
       function loadState() {
         var fallback = { tab: 'news', category: 'all' };
@@ -848,15 +932,29 @@
         saveState(state);
       }
 
-      function showTab(target, state) {
+      function scrollToTab(target, behavior) {
+        if (!swipeContainer || !isMobileView()) {
+          return;
+        }
+        var targetEl = document.getElementById('tab-' + target);
+        if (targetEl) {
+          swipeContainer.scrollTo({
+            left: targetEl.offsetLeft,
+            behavior: behavior || 'smooth'
+          });
+        }
+      }
+
+      function updateUIForTab(target) {
         tabs.forEach(function (tab) {
           var active = tab.getAttribute('data-tab') === target;
           tab.classList.toggle('active', active);
           tab.setAttribute('aria-selected', active ? 'true' : 'false');
         });
 
-        tabContents.forEach(function (content) {
-          content.classList.toggle('active', content.id === 'tab-' + target);
+        // Toggle active class on content as well (optional, for specific styling if needed)
+        document.querySelectorAll('.swipe-slide').forEach(function(slide) {
+             slide.classList.toggle('active', slide.id === 'tab-' + target);
         });
 
         var showCategoryUi = target === 'news';
@@ -871,22 +969,95 @@
         }
 
         updateIndicator(target);
+      }
+
+      function showTab(target, state) {
+        updateUIForTab(target);
+        scrollToTab(target, 'smooth');
         state.tab = target;
         saveState(state);
       }
 
-      var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
-      var tabNames = ['news', 'ranking'];
-
       function updateIndicator(target) {
         indicatorDots.forEach(function (dot) {
           dot.classList.toggle('active', dot.getAttribute('data-tab') === target);
+          dot.style.opacity = '';
+          dot.style.transform = '';
         });
+      }
+
+      function tabIndexOrZero(target) {
+        var index = tabNames.indexOf(target);
+        return index === -1 ? 0 : index;
+      }
+
+      function updateIndicatorProgress(progressIndex) {
+        indicatorDots.forEach(function (dot, index) {
+          var distance = Math.abs(index - progressIndex);
+          var opacity = Math.max(0.25, 1 - distance * 0.75);
+          var scale = 1.15 - Math.min(distance, 1) * 0.2;
+          dot.style.opacity = opacity.toFixed(2);
+          dot.style.transform = 'scale(' + scale.toFixed(2) + ')';
+          dot.classList.toggle('active', index === Math.round(progressIndex));
+        });
+      }
+
+      function maybeShowSwipeHint() {
+        if (!swipeHint) {
+          return;
+        }
+        if (!isMobileView()) {
+          swipeHint.classList.add('hidden');
+          return;
+        }
+
+        var seen = false;
+        try {
+          seen = localStorage.getItem(SWIPE_HINT_KEY) === '1';
+        } catch (e) {
+          seen = false;
+        }
+
+        if (seen) {
+          swipeHint.classList.add('hidden');
+          return;
+        }
+
+        swipeHint.classList.remove('hidden');
+        window.setTimeout(function () {
+          swipeHint.classList.add('hidden');
+          try {
+            localStorage.setItem(SWIPE_HINT_KEY, '1');
+          } catch (e) {
+            // Ignore storage errors.
+          }
+        }, 2800);
       }
 
       var state = loadState();
       if (!categoryExists(state.category)) {
         state.category = 'all';
+      }
+
+      if (swipeContainer) {
+        swipeContainer.addEventListener('scroll', function () {
+          if (!isMobileView()) {
+            return;
+          }
+          var width = swipeContainer.offsetWidth;
+          if (!width) {
+            return;
+          }
+          var progressIndex = swipeContainer.scrollLeft / width;
+          var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
+          updateIndicatorProgress(clamped);
+          var target = tabNames[Math.round(clamped)];
+          if (target && state.tab !== target) {
+            state.tab = target;
+            saveState(state);
+            updateUIForTab(target);
+          }
+        }, { passive: true });
       }
 
       categoryFilters.forEach(function (btn) {
@@ -897,85 +1068,38 @@
 
       tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-          showTab(tab.getAttribute('data-tab'), state);
+          // Manually update state and UI first for responsiveness, then scroll
+          var target = tab.getAttribute('data-tab');
+          showTab(target, state);
         });
       });
 
       showCategory(state.category, state);
-      showTab(state.tab, state);
-
-      // Mobile swipe to switch tabs
-      (function () {
-        var mainEl = document.querySelector('.main');
-        if (!mainEl) return;
-        var startX = 0, startY = 0, currentX = 0;
-        var tracking = false, isHorizontal = null;
-        var SWIPE_THRESHOLD = 50;
-        var DIRECTION_LOCK_THRESHOLD = 10;
-
-        function isScrollableElement(el) {
-          while (el && el !== mainEl) {
-            if (el.classList && (el.classList.contains('mobile-category-scroll'))) {
-              return true;
-            }
-            var style = window.getComputedStyle(el);
-            if (style.overflowX === 'auto' || style.overflowX === 'scroll') {
-              if (el.scrollWidth > el.clientWidth) return true;
-            }
-            el = el.parentElement;
-          }
-          return false;
+      updateUIForTab(state.tab);
+      setTimeout(function () {
+        if (isMobileView()) {
+          scrollToTab(state.tab, 'auto');
+          updateIndicatorProgress(tabIndexOrZero(state.tab));
+        } else {
+          updateIndicator(state.tab);
         }
+        maybeShowSwipeHint();
+      }, 100);
 
-        mainEl.addEventListener('touchstart', function (e) {
-          if (window.innerWidth > 768) return;
-          if (isScrollableElement(e.target)) return;
-          var touch = e.touches[0];
-          startX = touch.clientX;
-          startY = touch.clientY;
-          currentX = startX;
-          tracking = true;
-          isHorizontal = null;
-        }, { passive: true });
-
-        mainEl.addEventListener('touchmove', function (e) {
-          if (!tracking) return;
-          var touch = e.touches[0];
-          currentX = touch.clientX;
-          var dx = Math.abs(touch.clientX - startX);
-          var dy = Math.abs(touch.clientY - startY);
-
-          // Lock direction once we've moved enough
-          if (isHorizontal === null && (dx > DIRECTION_LOCK_THRESHOLD || dy > DIRECTION_LOCK_THRESHOLD)) {
-            isHorizontal = dx > dy;
+      if (mobileQuery.addEventListener) {
+        mobileQuery.addEventListener('change', function () {
+          updateUIForTab(state.tab);
+          if (isMobileView()) {
+            scrollToTab(state.tab, 'auto');
+            updateIndicatorProgress(tabIndexOrZero(state.tab));
+            maybeShowSwipeHint();
+          } else {
+            updateIndicator(state.tab);
           }
+        });
+      }
 
-          // If swiping horizontally, prevent vertical scroll
-          if (isHorizontal) {
-            e.preventDefault();
-          }
-
-          // If vertical, cancel tracking
-          if (isHorizontal === false) {
-            tracking = false;
-          }
-        }, { passive: false });
-
-        mainEl.addEventListener('touchend', function (e) {
-          if (!tracking) return;
-          tracking = false;
-          if (!isHorizontal) return;
-          var dx = currentX - startX;
-          if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-
-          var currentIdx = tabNames.indexOf(state.tab);
-          if (dx < 0 && currentIdx < tabNames.length - 1) {
-            showTab(tabNames[currentIdx + 1], state);
-          } else if (dx > 0 && currentIdx > 0) {
-            showTab(tabNames[currentIdx - 1], state);
-          }
-        }, { passive: true });
-      })();
+      // (Replaces previous touch event listeners)
     })();
   </script>
 </body>
