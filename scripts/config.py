@@ -150,6 +150,18 @@ SITES = [
         "ranking_type": "prtimes",
     },
 
+    # Yahoo!ニュース
+    {
+        "name": "Yahoo!ニュース", "url": "https://news.yahoo.co.jp/",
+        "category": "general", "type": "scrape", "scrape_type": "yahoo_news",
+        "icon": "Y!", "css_class": "yahoonews", "domain": "news.yahoo.co.jp", "badge": "NEWS",
+        "site_url": "https://news.yahoo.co.jp",
+        "icon_gradient": "linear-gradient(135deg, #ff0033, #ff4466)",
+        "accent_color": "#ff0033",
+        "ranking_url": "https://news.yahoo.co.jp/ranking/access/news",
+        "ranking_type": "yahoo_news",
+    },
+
     # 一般ニュース
     {
         "name": "BBC News", "url": "https://feeds.bbci.co.uk/news/rss.xml",

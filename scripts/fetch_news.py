@@ -316,8 +316,48 @@ def extract_prtimes_ranking(soup, ranking_url):
     return _extract_prtimes_articles(wrappers[2], ranking_url, MAX_RANKING_ITEMS)
 
 
+def extract_yahoo_news(soup, base_url):
+    """Extract '主要' (top/main) news items from Yahoo! News top page."""
+    items = []
+    seen = set()
+    topics = soup.find("section", class_="topics")
+    if not topics:
+        return items
+    for a_tag in topics.find_all("a", href=lambda h: h and "/pickup/" in h):
+        title = a_tag.get_text(strip=True)
+        href = a_tag.get("href")
+        append_ranking_item(items, seen, title, href, base_url, 4)
+        if len(items) >= MAX_ITEMS_PER_SITE:
+            break
+    return items
+
+
+def extract_yahoo_news_ranking(soup, ranking_url):
+    """Extract ranking items from Yahoo! News ranking page."""
+    items = []
+    seen = set()
+    for a_tag in soup.find_all("a", href=lambda h: h and "/articles/" in h):
+        body = a_tag.find("div", class_="newsFeed_item_body")
+        if not body:
+            continue
+        # Title is in the first div inside the second child div of body
+        divs = body.find_all("div", recursive=False)
+        if len(divs) < 2:
+            continue
+        title_div = divs[1].find("div")
+        if not title_div:
+            continue
+        title = title_div.get_text(strip=True)
+        href = a_tag.get("href")
+        append_ranking_item(items, seen, title, href, ranking_url, 5)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
+    return items
+
+
 SCRAPE_NEWS_EXTRACTORS = {
     "prtimes_news": extract_prtimes_news,
+    "yahoo_news": extract_yahoo_news,
 }
 
 
@@ -333,6 +373,7 @@ RANKING_EXTRACTORS = {
     "jdn": extract_jdn_ranking,
     "bbc": extract_bbc_ranking,
     "prtimes": extract_prtimes_ranking,
+    "yahoo_news": extract_yahoo_news_ranking,
 }
 
 
