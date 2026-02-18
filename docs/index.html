@@ -502,16 +502,85 @@
       background: var(--accent-tech);
     }
 
+    .swipe-hint {
+      display: none;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: -8px;
+      margin-bottom: 12px;
+      opacity: 0.9;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .swipe-hint.hidden {
+      opacity: 0;
+      transform: translateY(-3px);
+      pointer-events: none;
+    }
+
     @media (max-width: 768px) {
       .tab-indicator {
         display: flex;
+      }
+
+      .swipe-hint {
+        display: block;
       }
     }
 
     /* Tab content visibility (fallback: show all without JS) */
     .tab-content { display: block; }
+
+    /* Desktop: regular tab behavior */
     .js-ready .tab-content { display: none; }
     .js-ready .tab-content.active { display: block; }
+
+    /* Swipe Container */
+    .swipe-container {
+      display: block;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .swipe-slide {
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (max-width: 768px) {
+      .swipe-container {
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+        gap: 12px;
+        padding-inline: 8px;
+        scroll-padding-inline: 8px;
+      }
+
+      .swipe-container::-webkit-scrollbar {
+        display: none;
+      }
+
+      .swipe-slide {
+        width: auto;
+        min-width: calc(100% - 28px);
+        flex-shrink: 0;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+      }
+
+      /* Mobile swipe needs both slides rendered */
+      .js-ready .swipe-container .tab-content {
+        display: block;
+      }
+    }
 
     /* Ranking section */
     .ranking-grid {
@@ -639,7 +708,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="logo">News<span>Flow</span></div>
-      <div class="update-time">最終更新: 2026-02-18 08:51 JST</div>
+      <div class="update-time">最終更新: 2026-02-18 20:26 JST</div>
 
       <div class="nav-section-label">メインメニュー</div>
       <button class="nav-item category-filter sidebar-category-filter active" data-category="all" aria-pressed="true">
@@ -768,6 +837,7 @@
         <span class="tab-indicator-dot active" data-tab="news"></span>
         <span class="tab-indicator-dot" data-tab="ranking"></span>
       </div>
+      <div class="swipe-hint hidden" id="swipe-hint" aria-hidden="true">← スワイプで切り替え →</div>
 
       <div class="mobile-category-wrap" data-role="mobile-category-wrap">
         <div class="mobile-category-scroll">
@@ -784,8 +854,11 @@
         </div>
       </div>
 
+      <!-- Swipe Container -->
+      <div class="swipe-container" id="swipe-container">
+
       <!-- News Tab Content -->
-      <div class="tab-content active" id="tab-news" role="tabpanel" aria-labelledby="tab-btn-news">
+      <div class="swipe-slide tab-content active" id="tab-news" role="tabpanel" aria-labelledby="tab-btn-news">
       <div class="category-section" data-cat="テック・AI">
         <div class="section-header">
           <div class="section-accent" style="background: #6366f1;"></div>
@@ -804,6 +877,42 @@
               <div class="source-badge" style="background: #0a9e0111; color: #0a9e01;">TECH</div>
             </div>
             <ul class="card-headlines">
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://techcrunch.com/2026/02/17/u-s-court-bars-openai-from-using-cameo/" target="_blank" rel="noopener">U.S. court bars OpenAI from using ‘Cameo’</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://techcrunch.com/2026/02/17/tesla-dodges-30-day-suspension-in-california-after-removing-autopilot/" target="_blank" rel="noopener">Tesla dodges 30-day suspension in California after removing ‘Autopilot’</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://techcrunch.com/2026/02/17/intellexas-predator-spyware-used-to-hack-iphone-of-journalist-in-angola-research-says/" target="_blank" rel="noopener">Intellexa’s Predator spyware used to hack iPhone of journalist in Angola, research says</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://techcrunch.com/2026/02/17/jack-altman-joins-benchmark-as-gp/" target="_blank" rel="noopener">Jack Altman joins Benchmark as GP</a>
+                </div>
+              </li>
               <li>
                 <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -840,42 +949,6 @@
                   <a href="https://techcrunch.com/2026/02/17/thrive-raises-10b-for-new-fund-its-largest-yet/" target="_blank" rel="noopener">Thrive raises $10B for new fund, its largest yet</a>
                 </div>
               </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://techcrunch.com/2026/02/17/climactic-launches-hybrid-fund-to-get-startups-through-the-valley-of-death/" target="_blank" rel="noopener">Climactic launches hybrid fund to get startups through the ‘valley of death’</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://techcrunch.com/2026/02/17/anthropic-releases-sonnet-4-6/" target="_blank" rel="noopener">Anthropic releases Sonnet 4.6</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://techcrunch.com/2026/02/17/mistral-ai-buys-koyeb-in-first-acquisition-to-back-its-cloud-ambitions/" target="_blank" rel="noopener">Mistral AI buys Koyeb in first acquisition to back its cloud ambitions</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://techcrunch.com/2026/02/17/spacex-vets-raise-50m-series-a-for-data-center-links/" target="_blank" rel="noopener">SpaceX vets raise $50M Series A for data center links</a>
-                </div>
-              </li>
             </ul>
           </div>
           <div class="news-card">
@@ -895,7 +968,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/business/articles/2602/18/news030.html" target="_blank" rel="noopener">[ITmedia ビジネスオンライン] “情弱ビジネス”とは言わせない チャージスポット運営のINFORICHが「市場価格の2倍」で買収へ……妥当性はどこにある？</a>
+                  <a href="https://www.itmedia.co.jp/news/articles/2602/18/news131.html" target="_blank" rel="noopener">[ITmedia News] クラウドインフラのシェア、AWSがトップ維持もAzureとGoogle Cloudが少しずつ追い上げ 2025年第4四半期、Synergy Research調査</a>
                 </div>
               </li>
               <li>
@@ -904,7 +977,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/business/articles/2602/18/news037.html" target="_blank" rel="noopener">[ITmedia ビジネスオンライン] 従業員の退職による倒産、過去最多を更新 中小企業を追い詰める人材流出リスク</a>
+                  <a href="https://www.itmedia.co.jp/mobile/articles/2602/18/news130.html" target="_blank" rel="noopener">[ITmedia Mobile] auが「スマホトクするプログラム＋」を2月26日開始 返却＋最大2.2万円で残価免除、auで買い替えなら割引</a>
                 </div>
               </li>
               <li>
@@ -913,7 +986,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/enterprise/articles/2602/18/news028.html" target="_blank" rel="noopener">[ITmedia エンタープライズ] 富士通、ソブリンAIサーバを国内製造開始 自社開発プロセッサー搭載版も</a>
+                  <a href="https://www.itmedia.co.jp/news/articles/2602/18/news129.html" target="_blank" rel="noopener">[ITmedia News] 東海大、ランサム被害で個人情報漏えい 最大19万人分 業務委託先がルール違反、データを持ち帰り</a>
                 </div>
               </li>
               <li>
@@ -922,7 +995,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/news/articles/2602/18/news031.html" target="_blank" rel="noopener">[ITmedia News] なぜ寝不足で頭が回らないのか？ “脳の配線”劣化が原因か イタリアチームが発表</a>
+                  <a href="https://www.itmedia.co.jp/mobile/articles/2602/18/news128.html" target="_blank" rel="noopener">[ITmedia Mobile] iPhone 17シリーズ向け手帳型ケース発売 高級シェーブルレザー採用で2万9700円</a>
                 </div>
               </li>
               <li>
@@ -931,7 +1004,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://mag.executive.itmedia.co.jp/executive/articles/2602/18/news015.html" target="_blank" rel="noopener">[ITmedia エグゼクティブ] 絵画の傾きを皆で調整するな! 鳥瞰力で推進するリーダー - 村田製作所 楠本氏</a>
+                  <a href="https://www.itmedia.co.jp/pcuser/articles/2602/18/news125.html" target="_blank" rel="noopener">[ITmedia PC USER] レノボが「FIFAワールドカップ2026」コラボのAndroidタブレットを展示 「motorola razr fold」のモックアップも</a>
                 </div>
               </li>
               <li>
@@ -940,7 +1013,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/news/articles/2602/18/news063.html" target="_blank" rel="noopener">[ITmedia News] WordPress.comにAIアシスタント 自然言語でWebサイトデザインや画像編集が可能に</a>
+                  <a href="https://www.itmedia.co.jp/news/articles/2602/18/news122.html" target="_blank" rel="noopener">[ITmedia News] 飛行機内はモバイルバッテリー使用禁止に？ 国交省に状況を確認した</a>
                 </div>
               </li>
               <li>
@@ -949,7 +1022,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.itmedia.co.jp/enterprise/articles/2602/18/news036.html" target="_blank" rel="noopener">[ITmedia エンタープライズ] シャドーAIエージェントを検出 Oktaが新機能「Agent Discovery」を発表</a>
+                  <a href="https://www.itmedia.co.jp/pcuser/articles/2602/18/news099.html" target="_blank" rel="noopener">[ITmedia PC USER] 約10gのウェアラブルAIレコーダーや分離合体プロジェクターなど、Ankerが「Soundcore」を刷新 ロボット掃除機も定番モデルを強化</a>
                 </div>
               </li>
               <li>
@@ -958,7 +1031,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://mag.executive.itmedia.co.jp/executive/articles/2602/18/news026.html" target="_blank" rel="noopener">[ITmedia エグゼクティブ] 植物と景色が調和する「PARADISE 大手町店」がグランドオープン</a>
+                  <a href="https://www.itmedia.co.jp/mobile/articles/2602/18/news118.html" target="_blank" rel="noopener">[ITmedia Mobile] 新品高騰で中古スマホが利用増、人気は「iPhone 13」や「SE」 Belongの利用実態調査</a>
                 </div>
               </li>
             </ul>
@@ -980,7 +1053,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/thermos-backpack.html" target="_blank" rel="noopener">まさに「背負う魔法瓶」。サーモスがつくった断熱バックパック</a>
+                  <a href="https://www.gizmodo.jp/2026/02/the-world-is-on-fire-and-meta-sees-an-opportunity-to-add-facial-recognition-to-smart-glasses.html" target="_blank" rel="noopener">世間が荒れてる今がチャーンス!? Metaがスマートグラスに顔認識機能追加を検討中</a>
                 </div>
               </li>
               <li>
@@ -989,7 +1062,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/machi-ya-untejacket-review-919204.html" target="_blank" rel="noopener">防寒とスマートさを両立。アウター不要、氷点下でも耐えられるジャケット</a>
+                  <a href="https://www.gizmodo.jp/2026/02/tamron-35-100mm-f-2-8-di-iii-vxd.html" target="_blank" rel="noopener">万能感ある1本満足レンズ。タムロン「35-100mm f/2.8」リーク、CP+前に発表かも</a>
                 </div>
               </li>
               <li>
@@ -998,7 +1071,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/gtm-switzerland-vote.html" target="_blank" rel="noopener">スマホで投票できる日は来る？ 2019年のスイスの大挑戦</a>
+                  <a href="https://www.gizmodo.jp/2026/02/cio-mug-warmer-2.html" target="_blank" rel="noopener">ホットドリンクがずっとおいしい。CIOの電動マグカップ導入で思わぬメリットも</a>
                 </div>
               </li>
               <li>
@@ -1007,7 +1080,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/gizmodo-comreal-animals-that-look-fake-1mi.html" target="_blank" rel="noopener">とっても奇妙だけど実在してる動物たち13選</a>
+                  <a href="https://www.gizmodo.jp/2026/02/amazon-timesale-2026-0218-3.html" target="_blank" rel="noopener">半額で“ライブ会場級”の臨場感。UGREENのノイズキャンセルヘッドホンがコスパ破壊</a>
                 </div>
               </li>
               <li>
@@ -1016,7 +1089,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/tenga_hacker.html" target="_blank" rel="noopener">TENGAから顧客情報が漏洩…TENGAも顧客も恥ずかしい事態に</a>
+                  <a href="https://www.gizmodo.jp/2026/02/macmini_nazo.html" target="_blank" rel="noopener">Mac miniが8万円台に謎値下げ。メモリ高騰の中、Amazon何考えてんの！</a>
                 </div>
               </li>
               <li>
@@ -1025,7 +1098,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/nasa-puts-21-year-old-spacecraft-on-pause-to-keep-it-from-crashing-into-earth.html" target="_blank" rel="noopener">高度低下中の人工衛星を救え！ NASAが救助ミッションを今夏実施</a>
+                  <a href="https://www.gizmodo.jp/2026/02/amazon-philips-carcharger.html" target="_blank" rel="noopener">クルマのバッテリー上がりを事前に検知。ガジェットの充電もできるよ</a>
                 </div>
               </li>
               <li>
@@ -1034,7 +1107,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/314108.html" target="_blank" rel="noopener">インドにNothingの旗艦店オープン。クリエイティブとファンが集まる場所に</a>
+                  <a href="https://www.gizmodo.jp/2026/02/gen-zs-social-media-addiction-may-have-ironically-led-to-an-indie-cinema-revival-3z4.html" target="_blank" rel="noopener">SNSのおかげで、Z世代の間で「映画館ブーム」が起きてるらしい</a>
                 </div>
               </li>
               <li>
@@ -1043,7 +1116,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.gizmodo.jp/2026/02/john-wick-game.html" target="_blank" rel="noopener">ジョン・ウィックにおれはなる。あのガンフーアクションが待望のゲーム化</a>
+                  <a href="https://www.gizmodo.jp/2026/02/iphone17e-rumors.html" target="_blank" rel="noopener">【噂まとめ】iPhone 17eのすべて。3月4日のスペシャルイベントでお披露目？（2/18 更新）</a>
                 </div>
               </li>
             </ul>
@@ -1059,6 +1132,33 @@
               <div class="source-badge" style="background: #6366f111; color: #6366f1;">TECH</div>
             </div>
             <ul class="card-headlines">
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.theverge.com/ai-artificial-intelligence/880562/perplexity-ditches-ai-ads" target="_blank" rel="noopener">Perplexity joins anti-ad camp as AI companies battle over trust and revenue</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.theverge.com/transportation/880548/tesla-autopilot-california-dmv-marketing-update" target="_blank" rel="noopener">Tesla won’t use the term ‘Autopilot’ in California anymore</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.theverge.com/ai-artificial-intelligence/880513/nvidia-meta-ai-grace-vera-chips" target="_blank" rel="noopener">Meta&amp;#8217;s new deal with Nvidia buys up millions of AI chips</a>
+                </div>
+              </li>
               <li>
                 <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -1102,33 +1202,6 @@
                 </svg>
                 <div class="headline-content">
                   <a href="https://www.theverge.com/gadgets/821108/metroid-prime-1-3-a-visual-retrospective-art-book-deal-sale" target="_blank" rel="noopener">Piggyback’s fantastic Metroid Prime art book is nearly 20 percent off</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.theverge.com/tech/880401/google-io-2026-dates-ai" target="_blank" rel="noopener">Google announces dates for I/O 2026</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.theverge.com/21289209/best-apple-watch-deals" target="_blank" rel="noopener">Here are the best Apple Watch deals available right now</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.theverge.com/tech/880210/google-pixel-9-airdrop-quick-share" target="_blank" rel="noopener">Now Pixel 9 phones can transfer files with AirDrop, too</a>
                 </div>
               </li>
             </ul>
@@ -1235,7 +1308,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://cryptoslate.com/russias-censorship-crackdown-and-whatsapp-ban-expose-the-decentralization-gap-the-crypto-industry-keeps-missing/" target="_blank" rel="noopener">Russia’s censorship crackdown and WhatsApp ban expose the decentralization gap the crypto industry keeps missing</a>
+                  <a href="https://cryptoslate.com/blackrock-to-skim-18-of-staked-ethereum-etf-rewards-from-investors-and-ethb-exits-could-take-weeks/" target="_blank" rel="noopener">BlackRock to skim 18% of staked Ethereum ETF rewards from investors — and ETHB exits could take weeks</a>
                 </div>
               </li>
               <li>
@@ -1244,7 +1317,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://cryptoslate.com/michael-saylor-confirms-strategy-can-survive-a-bitcoin-crash-to-8000-but-can-it-escape-the-slow-bleed-of-dilution/" target="_blank" rel="noopener">Strategy can survive Bitcoin crashing to $8,000 – but can it escape the slow bleed of dilution?</a>
+                  <a href="https://cryptoslate.com/russias-censorship-crackdown-and-whatsapp-ban-expose-the-decentralization-gap-the-crypto-industry-keeps-missing/" target="_blank" rel="noopener">This censorship crackdown and WhatsApp ban exposed the decentralization gap the crypto industry keeps missing</a>
                 </div>
               </li>
               <li>
@@ -1253,7 +1326,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://cryptoslate.com/if-bitcoin-drops-5-more-it-can-trigger-a-bull-stampede-as-historical-buy-zone-sits-around-63k/" target="_blank" rel="noopener">Bitcoin now only 5% away from historic “buy zone” which could trigger start of the next bull run</a>
+                  <a href="https://cryptoslate.com/michael-saylor-confirms-strategy-can-survive-a-bitcoin-crash-to-8000-but-can-it-escape-the-slow-bleed-of-dilution/" target="_blank" rel="noopener">Saylor says Strategy can survive Bitcoin crashing to $8,000 – but can it escape the slow bleed of dilution?</a>
                 </div>
               </li>
               <li>
@@ -1262,7 +1335,16 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://cryptoslate.com/binance-employee-hunted-down-in-botched-france-home-invasion-as-crypto-wrench-attack-spike-spreads/" target="_blank" rel="noopener">Binance employee hunted down in botched France home invasion as crypto “wrench attack” spike spreads</a>
+                  <a href="https://cryptoslate.com/bitcoin-is-only-5-away-from-the-buy-zone-which-could-trigger-start-of-the-next-bull-run/" target="_blank" rel="noopener">Bitcoin is only 5% away from the “buy zone” which could trigger start of the next bull run</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://cryptoslate.com/binance-employee-hunted-down-in-botched-france-home-invasion-as-crypto-wrench-attack-spike-spreads/" target="_blank" rel="noopener">Crypto investor hunted down in botched France home invasion as crypto “wrench attack” spike spreads</a>
                 </div>
               </li>
               <li>
@@ -1280,7 +1362,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://cryptoslate.com/ethereum-bots-are-burning-over-50-of-gas-fees-so-eth-now-needs-privacy-just-to-scale/" target="_blank" rel="noopener">Crypto privacy just became an economic crisis as MEV bots siphon millions and most users still leak everything</a>
+                  <a href="https://cryptoslate.com/ethereum-bots-are-burning-over-50-of-gas-fees-so-eth-now-needs-privacy-just-to-scale/" target="_blank" rel="noopener">Crypto privacy has turned into an economic crisis as MEV bots siphon millions and most users still leak everything</a>
                 </div>
               </li>
               <li>
@@ -1290,15 +1372,6 @@
                 </svg>
                 <div class="headline-content">
                   <a href="https://cryptoslate.com/xrp-struggles-despite-xrpl-upgrades-and-rising-whale-activity/" target="_blank" rel="noopener">Standard Chartered slashes XRP price target by 65% as whales send millions of tokens to Binance</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://cryptoslate.com/coinbase-diamond-hands-vs-binance-panic-sellers-the-60000-stress-test/" target="_blank" rel="noopener">Binance traders are panic selling but HODLing on Coinbase — the $60,000 BTC stress test</a>
                 </div>
               </li>
             </ul>
@@ -1320,7 +1393,52 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
+                  <a href="https://gist.github.com/jake-stewart/0a8ea46159a7da2c808e5be2177e1783" target="_blank" rel="noopener">Terminals should generate the 256-color palette</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
                   <a href="https://www.anthropic.com/news/claude-sonnet-4-6" target="_blank" rel="noopener">Claude Sonnet 4.6</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.ideaforge.chat/" target="_blank" rel="noopener">Stop prompting. Let the AI interview you to build specs</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://vermaden.wordpress.com/2026/02/18/native-freebsd-kerberos-ldap-with-freeipa-idm/" target="_blank" rel="noopener">Native FreeBSD Kerberos/LDAP with FreeIPA/IDM</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://asahilinux.org/2026/02/progress-report-6-19/" target="_blank" rel="noopener">Asahi Linux Progress Report: Linux 6.19</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://github.com/taleshape-com/shaper" target="_blank" rel="noopener">A DuckDB-based metabase alternative</a>
                 </div>
               </li>
               <li>
@@ -1338,52 +1456,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://asteroidos.org/news/2-0-release/index.html" target="_blank" rel="noopener">Show HN: AsteroidOS 2.0 – Nobody asked, we shipped anyway</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://github.com/ramanujammv1988/edge-veda" target="_blank" rel="noopener">Run LLMs locally in Flutter with &lt;200ms latency</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://github.com/Zaneham/BarraCUDA" target="_blank" rel="noopener">BarraCUDA Open-source CUDA compiler targeting AMD GPUs</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.experimental-history.com/p/i-swear-the-ufo-is-coming-any-minute" target="_blank" rel="noopener">I swear the UFO is coming any minute</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.gentoo.org/news/2026/02/16/codeberg.html" target="_blank" rel="noopener">Gentoo on Codeberg</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://go.dev/blog/gofix" target="_blank" rel="noopener">Using go fix to modernize Go code</a>
+                  <a href="https://nvie.com/posts/15-years-later/" target="_blank" rel="noopener">15 years later, Microsoft morged my diagram</a>
                 </div>
               </li>
             </ul>
@@ -1399,6 +1472,24 @@
               <div class="source-badge" style="background: #11111111; color: #111111;">TECH</div>
             </div>
             <ul class="card-headlines">
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://wired.jp/article/purring-reveals-cat-identity-better-than-meowing/" target="_blank" rel="noopener">ネコがのどを鳴らす音は、“声紋”のように機能する：研究結果</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://wired.jp/article/how-to-meditate/" target="_blank" rel="noopener">忙しい人のための瞑想入門──数分でもできる、集中力と睡眠の質を高める習慣</a>
+                </div>
+              </li>
               <li>
                 <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -1453,24 +1544,6 @@
                   <a href="https://wired.jp/article/the-hidden-math-of-ocean-waves-crashes-into-view/" target="_blank" rel="noopener">海の波に潜む数学を2世紀越しで解明</a>
                 </div>
               </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://wired.jp/article/ai-powered-disinformation-swarms-are-coming-for-democracy/" target="_blank" rel="noopener">偽情報を拡散する「AIの群れ」が民主主義を脅かす：研究者らが警告</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://wired.jp/article/ai-bots-are-now-a-signifigant-source-of-web-traffic/" target="_blank" rel="noopener">AI時代、ウェブトラフィックの主役は人間からボットになる？</a>
-                </div>
-              </li>
             </ul>
           </div>
         </div>
@@ -1499,7 +1572,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/elegance-summer-2026/" target="_blank" rel="noopener">【2026年夏コスメ】エレガンス：質感とカラバリで目元印象を操る新作アイライナー誕生</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-18/shein-dsa/" target="_blank" rel="noopener">欧州委員会が「シーイン」の調査開始、成人用玩具を違法販売か</a>
                 </div>
               </li>
               <li>
@@ -1508,7 +1581,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-18/armani-beauty-orange-mediterranee/" target="_blank" rel="noopener">アルマーニ ビューティから地中海のオレンジ農園に着想得たフレグランスが登場</a>
+                  <a href="https://www.fashionsnap.com/streetstyle/2026-02-18/485291/" target="_blank" rel="noopener">ストリートスタイル: Job: モデル</a>
                 </div>
               </li>
               <li>
@@ -1517,7 +1590,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-18/moussy-vaquera/" target="_blank" rel="noopener">マウジーがヴァケラとコラボカプセルコレクションを発売 Tシャツやジャケットなど全16型</a>
+                  <a href="https://www.fashionsnap.com/article/fstore26ss-tamme-snap/" target="_blank" rel="noopener">春夏の注目スタイルを先取り 26SSコレクションの新作を使ったスタイリングを紹介【タム編】</a>
                 </div>
               </li>
               <li>
@@ -1526,7 +1599,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-17/tumi-alpha/" target="_blank" rel="noopener">「トゥミ」がシグネチャーコレクションを刷新 現代のビジネススタイルに合わせた機能を追加</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-18/sporting-goods-retail/" target="_blank" rel="noopener">スポーツ用品小売市場が4年連続増加 今年は国際大会の後押しに期待</a>
                 </div>
               </li>
               <li>
@@ -1535,7 +1608,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-17/maquillage-mochillage/" target="_blank" rel="noopener">マキアージュが新ファンデ美容液のポップアップ開催 白玉肌に着想したスイーツを提供</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-18/kashiyama-premium-men/" target="_blank" rel="noopener">オーダーメイド「KASHIYAMA」がプレミアムラインを始動 納期は最短12日</a>
                 </div>
               </li>
               <li>
@@ -1544,7 +1617,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/kose-figureskate-makeup/" target="_blank" rel="noopener">選手自らがメイクアップ 氷上の勝負を支える、フィギュアスケート舞台裏の立役者</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-18/newmow-popup-daikanyama/" target="_blank" rel="noopener">榮倉奈々が手掛ける「ニューナウ」が代官山でポップアップ開催 イッチとのコラボアイテムを先行販売</a>
                 </div>
               </li>
               <li>
@@ -1553,7 +1626,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-17/citera-close/" target="_blank" rel="noopener">「シテラ」がブランド休止 公式サイトも閉鎖へ</a>
+                  <a href="https://www.fashionsnap.com/article/2026-02-18/coach-play-kyoto/" target="_blank" rel="noopener">「コーチ プレイ 京都」が河原町通にオープン 店舗限定アイテムをラインナップ</a>
                 </div>
               </li>
               <li>
@@ -1562,7 +1635,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.fashionsnap.com/article/2026-02-17/seven-eleven-powder/" target="_blank" rel="noopener">「セブン-イレブン」がパウダースペースを新設 気軽に身なりを整える場所に</a>
+                  <a href="https://www.fashionsnap.com/article/valentino-beauty-anne-laure-dequin/" target="_blank" rel="noopener">「感性の解像度が高い」日本へ ヴァレンティノ ビューティ事業部長にインタビュー</a>
                 </div>
               </li>
             </ul>
@@ -1584,6 +1657,60 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
+                  <a href="https://www.designboom.com/design/berlin-design-week-2026-design-real-designboom-partnership/" target="_blank" rel="noopener">berlin design week returns with design real motto and designboom partnership in 2026</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.designboom.com/art/hand-crocheted-flip-phones-2000s-computer-icons-philadelphia-exhibition-nicole-nikolich-paradigm-gallery-studio/" target="_blank" rel="noopener">hand-crocheted flip phones and 2000s computer icons take shape in philadelphia exhibition</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.designboom.com/architecture/circular-green-terraces-house-exposed-concrete-facade-india-tropibox-kochi-house-tropical-architecture-bureau/" target="_blank" rel="noopener">circular green terraces carve through exposed concrete facade in india</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.designboom.com/readers/whale-skeletal-light-installation-red-amsterdam-light-festival-xytopia/" target="_blank" rel="noopener">whale skeletal light installation glows red for amsterdam light festival</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.designboom.com/design/nik-bentel-studio-lidl-supermarket-shopping-cart-metal-trolley-bag/" target="_blank" rel="noopener">nik bentel rethinks the lidl supermarket shopping cart to create wire-framed ‘trolley bag’</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.designboom.com/design/garden-shower-steel-integrated-wood-stove-heat-up-water-feuerwasser/" target="_blank" rel="noopener">garden shower made of steel uses integrated wood stove to heat up the water</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
                   <a href="https://www.designboom.com/architecture/fran-silvestre-arquitectos-timber-steel-home-dismantling-spain/" target="_blank" rel="noopener">fran silvestre arquitectos develops timber-and-steel home conceived for dismantling in spain</a>
                 </div>
               </li>
@@ -1594,60 +1721,6 @@
                 </svg>
                 <div class="headline-content">
                   <a href="https://www.designboom.com/technology/meet-autoforma-norrsken-a-coachbuilt-restomod-of-the-volvo-p1800es-shooting-brake/" target="_blank" rel="noopener">meet autoforma norrsken: a coachbuilt restomod of the volvo P1800ES shooting brake</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/architecture/lava-stone-old-fishermans-house-seaside-villa-sicilian-coast/" target="_blank" rel="noopener">lava stone and old fisherman’s house merge into contemporary villa on sicilian coast</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/design/recycled-plastic-seas-landfills-eco-poker-chips-recycledin/" target="_blank" rel="noopener">recycled plastic from sea and landfill reemerges as eco poker chips</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/architecture/benedetta-tagliabue-embt-century-square-shanghai-kaleidoscopic-landscape/" target="_blank" rel="noopener">benedetta tagliabue EMBT reshapes century square in shanghai with kaleidoscopic landscape</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/technology/manufactura-corn-lime-composites-robotic-3d-printed-construction-corncretl/" target="_blank" rel="noopener">manufactura blends corn and lime composites for robotic 3D printed construction</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/architecture/explore-rare-type-e-duplex-apartment-le-corbusier-cite-radieuse-marseille-france/" target="_blank" rel="noopener">explore a rare ‘type E’ duplex apartment at le corbusier’s cité radieuse</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.designboom.com/architecture/children-reading-village-colorful-huts-transformed-paris-school-library/" target="_blank" rel="noopener">children can get lost in reading village full of colorful huts at transformed paris school library</a>
                 </div>
               </li>
             </ul>
@@ -1669,7 +1742,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2323279" target="_blank" rel="noopener">花王「ソフィーナ iP」が“マイクロ泡セラム洗顔料”を発売 洗浄と保湿を両立</a>
+                  <a href="https://www.wwdjapan.com/articles/2327856" target="_blank" rel="noopener">34年目の挑戦、「ウーノ」がヘアケア市場に参入</a>
                 </div>
               </li>
               <li>
@@ -1678,7 +1751,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2326650" target="_blank" rel="noopener">研究者の夢をパリコレへと導いた「ダブレット」 “空気”から生まれた革新素材に笑いを織り込んで</a>
+                  <a href="https://www.wwdjapan.com/articles/2327738" target="_blank" rel="noopener">CFCLがBコープ再認証で143.5点 日本企業として最高得点を更新</a>
                 </div>
               </li>
               <li>
@@ -1687,7 +1760,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2327042" target="_blank" rel="noopener">「ニューバランス」が原宿店で野球のポップアップ 球場の臨場感を味わう</a>
+                  <a href="https://www.wwdjapan.com/articles/2318529" target="_blank" rel="noopener">制約を楽しめ。ペーパーパレードに学ぶ、サステナブル時代のデザイン思考</a>
                 </div>
               </li>
               <li>
@@ -1696,7 +1769,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2326844" target="_blank" rel="noopener">【ARISAK Labo vol.12】現役高校生MON7Aの“激ヤバ卒業式” メジャーデビューを経て描く未来</a>
+                  <a href="https://www.wwdjapan.com/articles/2317799" target="_blank" rel="noopener">東コレを生で観よう！「楽天 ファッション ウィーク東京」2026-27年秋冬一般招待企画</a>
                 </div>
               </li>
               <li>
@@ -1705,7 +1778,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2326666" target="_blank" rel="noopener">写真家のタカマユミが個展「off nominal / after nexus」を開催 メディア横断で立ち上がる1つの状態を展示</a>
+                  <a href="https://www.wwdjapan.com/articles/2327614" target="_blank" rel="noopener">BTSのジョングクをグローバルアンバサダーに起用した「ウブロ」 CEOが語る背景と狙い</a>
                 </div>
               </li>
               <li>
@@ -1714,7 +1787,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2325964" target="_blank" rel="noopener">写真家のNobuko Babaが個展「ニュージーランド」を東京・広尾「see you gallery」で開催</a>
+                  <a href="https://www.wwdjapan.com/articles/2327540" target="_blank" rel="noopener">ビームスが公式リセールサービスを開始 洋服の背景に触れる新たな出合いを提供</a>
                 </div>
               </li>
               <li>
@@ -1723,7 +1796,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2326871" target="_blank" rel="noopener">三栄、リサイクル素材×無水染色で企業ユニフォーム循環モデルを本格始動</a>
+                  <a href="https://www.wwdjapan.com/articles/2327664" target="_blank" rel="noopener">Synflux代表・川崎和也が新著「惑星のためのファッション」を刊行 持続可能な社会を実現するための次世代ファッション論</a>
                 </div>
               </li>
               <li>
@@ -1732,7 +1805,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.wwdjapan.com/articles/2326769" target="_blank" rel="noopener">「アディアム」2026-27年秋冬コレクション</a>
+                  <a href="https://www.wwdjapan.com/articles/2317965" target="_blank" rel="noopener">ヤギが環境配慮型素材ブランドを集約した「ユナ・イト プロジェクト」の展示会を開催</a>
                 </div>
               </li>
             </ul>
@@ -1748,6 +1821,33 @@
               <div class="source-badge" style="background: #2563eb11; color: #2563eb;">DESIGN</div>
             </div>
             <ul class="card-headlines">
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.japandesign.ne.jp/news/2026/02/86686/" target="_blank" rel="noopener">「デザインギャラリー1953」の展覧会企画を募集する、「DESIGN GALLERY AWARD」が開催</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.japandesign.ne.jp/news/2026/02/86732/" target="_blank" rel="noopener">2025年度「東京ビジネスデザインアワード」の最優秀賞が決定、アートディレクター榎本清孝の提案が受賞</a>
+                </div>
+              </li>
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  <a href="https://www.japandesign.ne.jp/news/2026/02/86417/" target="_blank" rel="noopener">【求人情報】デザイン制作会社の株式会社Sateliteworksが、グラフィックデザイナーなど3職種を募集</a>
+                </div>
+              </li>
               <li>
                 <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                   stroke-linecap="round" stroke-linejoin="round">
@@ -1793,33 +1893,6 @@
                   <a href="https://www.japandesign.ne.jp/event/collection-correction-wallalternative/" target="_blank" rel="noopener">Collection – Correction メディアアートの再編成と作品の延命</a>
                 </div>
               </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.japandesign.ne.jp/event/doiitsuki-ccbt-sendagi/" target="_blank" rel="noopener">土井樹 展覧会「あたらしい天気」</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.japandesign.ne.jp/news/2026/02/86284/" target="_blank" rel="noopener">【求人情報】美容医療を専門とするピオーネビューティークリニックが、グラフィックデザイナー・Webデザイナーを募集</a>
-                </div>
-              </li>
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  <a href="https://www.japandesign.ne.jp/event/onestool-onestory-interoffice/" target="_blank" rel="noopener">One Stool, One Story</a>
-                </div>
-              </li>
             </ul>
           </div>
         </div>
@@ -1848,7 +1921,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOFL17B8Q0X10C26A2000000/" target="_blank" rel="noopener">NY債券、長期債小反落 10年債利回り4.06% 持ち高調整の売り、一時2カ月半ぶり低水準</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOCC097720Z00C26A2000000/" target="_blank" rel="noopener">ノースコーポレーション、川越で新メニュー ランチに武州和牛</a>
                 </div>
               </li>
               <li>
@@ -1857,7 +1930,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOFL17B320X10C26A2000000/" target="_blank" rel="noopener">NY株ハイライト 続くソフト関連売り 震源を襲うAI倫理の「踏み絵」</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUF1635D0W6A210C2000000/" target="_blank" rel="noopener">京都市バス、二重価格27年度導入へ実証 マイナンバーと交通系IC連携</a>
                 </div>
               </li>
               <li>
@@ -1866,7 +1939,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOGN1804M0Y6A210C2000000/" target="_blank" rel="noopener">米バークシャー、アマゾン株保有8割減 アップル株も売却継続</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUC182RV0Y6A210C2000000/" target="_blank" rel="noopener">病理診断ソフトのメドメイン、テクマトリックス子会社が買収</a>
                 </div>
               </li>
               <li>
@@ -1875,7 +1948,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOGR17AZJ0X10C26A2000000/" target="_blank" rel="noopener">イラン外相「米と核協議で進展」、交渉継続へ バンス氏は不満も</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOGR180FO0Y6A210C2000000/" target="_blank" rel="noopener">ゼレンスキー氏、プーチン氏に「スイスで首脳会談を提案」</a>
                 </div>
               </li>
               <li>
@@ -1884,7 +1957,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOFL1802B0Y6A210C2000000/" target="_blank" rel="noopener">日本株ADR17日、全面安 みずほFGが大幅安</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUD184RB0Y6A210C2000000/" target="_blank" rel="noopener">旅客機内のモバイルバッテリー使用禁止へ 国交省、持ち込み数制限も</a>
                 </div>
               </li>
               <li>
@@ -1893,7 +1966,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOCB179JE0X10C26A2000000/" target="_blank" rel="noopener">ジェシー・ジャクソン師死去 84歳、米公民権運動の指導者</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUC187YO0Y6A210C2000000/" target="_blank" rel="noopener">スズキ、産業ロボ制御ソフトの新興に出資 製造現場のDX推進</a>
                 </div>
               </li>
               <li>
@@ -1902,7 +1975,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOFL180360Y6A210C2000000/" target="_blank" rel="noopener">NYダウ小幅続伸、中東の地政学リスク後退で ナスダックも反発</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUF188VR0Y6A210C2000000/" target="_blank" rel="noopener">滋賀・米原の雑木林に女性遺体遺棄疑い、シリア国籍の男を逮捕</a>
                 </div>
               </li>
               <li>
@@ -1911,7 +1984,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nikkei.com/article/DGXZQOGN16AJ00W6A210C2000000/" target="_blank" rel="noopener">アンソロピック、米軍とAI兵器巡り契約解消か ベネズエラ攻撃で亀裂</a>
+                  <a href="https://www.nikkei.com/article/DGXZQOUD1253Y0S6A210C2000000/" target="_blank" rel="noopener">成年後見利用の警備員、就業認めない規定は違憲 最高裁大法廷</a>
                 </div>
               </li>
             </ul>
@@ -1933,7 +2006,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337227/" target="_blank" rel="noopener">ビットコイン、一時6万7000ドル割れ──ソフトウェア株の下落と連動</a>
+                  <a href="https://www.nadanews.com/337293/" target="_blank" rel="noopener">Stripe傘下のBridge、国法信託銀行設立の条件付き承認を取得</a>
                 </div>
               </li>
               <li>
@@ -1942,7 +2015,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337221/" target="_blank" rel="noopener">2026年米国中間選挙が暗号資産市場に与える構造的影響──ステーブルコイン制度化と市場再評価の分岐点【エックスウィンリサーチ】</a>
+                  <a href="https://www.nadanews.com/337333/" target="_blank" rel="noopener">アブダビの政府系ファンド、2025年末時点でビットコインETF保有額10億ドル突破</a>
                 </div>
               </li>
               <li>
@@ -1951,7 +2024,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/336260/" target="_blank" rel="noopener">「Midnight」3月始動へ──ホスキンソン氏がジブリを事例に明かす、日本行脚の狙い</a>
+                  <a href="https://www.nadanews.com/337321/" target="_blank" rel="noopener">Bitwise、大統領選挙などの結果に連動するETFを米SECに申請</a>
                 </div>
               </li>
               <li>
@@ -1960,7 +2033,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337212/" target="_blank" rel="noopener">CFTCセリグ委員長、予測市場を巡り州政府と対立──「法廷で会おう」と強硬姿勢</a>
+                  <a href="https://www.nadanews.com/337308/" target="_blank" rel="noopener">ビットコインETF、価格急落でも数十億ドル規模を維持──だがその強さの裏にある厳しい現実</a>
                 </div>
               </li>
               <li>
@@ -1969,7 +2042,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337208/" target="_blank" rel="noopener">Strategy、1週間で約260億円相当のビットコインを追加取得──保有総数は71万BTC超に</a>
+                  <a href="https://www.nadanews.com/337292/" target="_blank" rel="noopener">ビットコイン、7万ドル割れはさらなる下落の警告サイン</a>
                 </div>
               </li>
               <li>
@@ -1978,7 +2051,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337203/" target="_blank" rel="noopener">ステーブルコインは「日常のお金」に移行しつつある：BVNKが調査報告</a>
+                  <a href="https://www.nadanews.com/337269/" target="_blank" rel="noopener">ビットコインとナスダックの乖離は、AIによる信用危機への警告：アーサー・ヘイズ氏が指摘</a>
                 </div>
               </li>
               <li>
@@ -1987,7 +2060,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337200/" target="_blank" rel="noopener">米の人気ハンバーガー店、ビットコイン決済導入で売上が「劇的に」伸びたと語る</a>
+                  <a href="https://www.nadanews.com/337268/" target="_blank" rel="noopener">ProgmatとTMI、不動産事業者向け「ST参入支援」協業──法務からシステム構築まで一気通貫で提供</a>
                 </div>
               </li>
               <li>
@@ -1996,7 +2069,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.nadanews.com/337197/" target="_blank" rel="noopener">暗号資産市場は「物語的な取引」から機関投資家のポートフォリオ配分へ：WisdomTree</a>
+                  <a href="https://www.nadanews.com/337234/" target="_blank" rel="noopener">ビットコイン、米クジラは依然動かず──コインベースCEO、個人投資家の堅調さを強調【価格分析】</a>
                 </div>
               </li>
             </ul>
@@ -2018,7 +2091,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/c98q4mz831mo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Police assessing Stansted Airport private flights over Epstein ties</a>
+                  <a href="https://www.bbc.com/news/articles/c5yg04jg1n5o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Lower food and fuel prices drive inflation down to 3%</a>
                 </div>
               </li>
               <li>
@@ -2027,7 +2100,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/cn0zjw5pz48o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Cabinet secretary frontrunner faced multiple bullying complaints</a>
+                  <a href="https://www.bbc.com/news/articles/cm2136jnjx1o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">&#39;Just push us into the sea&#39;: The frustration of a coastal community failed by political promises</a>
                 </div>
               </li>
               <li>
@@ -2036,7 +2109,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/cx77214zz9eo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">How Jesse Jackson paved way for Barack Obama - and helped change US</a>
+                  <a href="https://www.bbc.com/news/articles/c5y6g57j3meo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Plan to increase youth minimum wage could be delayed</a>
                 </div>
               </li>
               <li>
@@ -2045,7 +2118,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/c3wl17l3ggqo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">&#39;The search is soul-destroying&#39;: Young jobseekers on the struggle to find work</a>
+                  <a href="https://www.bbc.com/news/articles/cm21d4j26pdo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">William says it has taken &#39;long time to understand my emotions&#39;</a>
                 </div>
               </li>
               <li>
@@ -2054,7 +2127,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/sport/articles/crl4x1g0jy1o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">GB curlers on brink of early exit after Canada defeat</a>
+                  <a href="https://www.bbc.com/news/articles/c5yv9plyjgpo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Climber on trial for leaving girlfriend to die on Austria&#39;s highest mountain</a>
                 </div>
               </li>
               <li>
@@ -2063,7 +2136,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/cx2d9yk2kpjo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Dual nationals face scramble for British passports as new rules come into force</a>
+                  <a href="https://www.bbc.com/news/articles/cn87rv0jdy1o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Under pressure from Trump, Venezuela&#39;s new president has aces up her sleeve</a>
                 </div>
               </li>
               <li>
@@ -2072,7 +2145,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/videos/cpqw2p1z19vo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Ros Atkins on...unanswered Andrew questions</a>
+                  <a href="https://www.bbc.com/news/articles/c1l7m4484g6o?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Swinney was told of Murrell charges weeks before they became public</a>
                 </div>
               </li>
               <li>
@@ -2081,7 +2154,7 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
                 <div class="headline-content">
-                  <a href="https://www.bbc.com/news/articles/czd8n800zdno?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Tories call for rethink of Parliament revamp</a>
+                  <a href="https://www.bbc.com/news/articles/cy57nxrr6dqo?at_medium=RSS&amp;at_campaign=rss" target="_blank" rel="noopener">Third Briton dies in French Alps avalanches in one week</a>
                 </div>
               </li>
             </ul>
@@ -2091,7 +2164,7 @@
       </div>
 
       <!-- Rankings Tab Content -->
-      <div class="tab-content" id="tab-ranking" role="tabpanel" aria-labelledby="tab-btn-ranking">
+      <div class="swipe-slide tab-content" id="tab-ranking" role="tabpanel" aria-labelledby="tab-btn-ranking">
         <div class="section-header">
           <div class="section-accent" style="background: var(--accent-tech);"></div>
           <div class="section-title">Popular Rankings</div>
@@ -2113,11 +2186,11 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://techcrunch.com/2026/02/17/thrive-raises-10b-for-new-fund-its-largest-yet/" target="_blank" rel="noopener">Thrive raises $10B for new fund, its largest yet</a>
+                <a href="https://techcrunch.com/2026/02/17/spacex-vets-raise-50m-series-a-for-data-center-links/" target="_blank" rel="noopener">SpaceX vets raise $50M Series A for data center links</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
-                <a href="https://techcrunch.com/podcast/rethinking-series-a-in-the-age-of-mega-funds/" target="_blank" rel="noopener">Rethinking Series A in the age of mega-funds</a>
+                <a href="https://techcrunch.com/2026/02/17/thrive-raises-10b-for-new-fund-its-largest-yet/" target="_blank" rel="noopener">Thrive raises $10B for new fund, its largest yet</a>
               </li>
               <li>
                 <span class="ranking-number rank-3">3</span>
@@ -2146,15 +2219,15 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.itmedia.co.jp/news/articles/2602/16/news130.html" target="_blank" rel="noopener">VTuber「ぶいすぽっ！」、性的イラストの作成者を特定 損害賠償1000万円を求め、示談成立</a>
-              </li>
-              <li>
-                <span class="ranking-number rank-2">2</span>
                 <a href="https://www.itmedia.co.jp/business/articles/2602/17/news027.html" target="_blank" rel="noopener">ワークマン「不審者パーカー」がヒット 2026年は12万点販売、人気の背景は？</a>
               </li>
               <li>
-                <span class="ranking-number rank-3">3</span>
+                <span class="ranking-number rank-2">2</span>
                 <a href="https://www.itmedia.co.jp/aiplus/articles/2602/17/news086.html" target="_blank" rel="noopener">富士通、ソフトウェア開発の全工程をAIで自動化 “生産性100倍”に 独自LLM「Takane」活用</a>
+              </li>
+              <li>
+                <span class="ranking-number rank-3">3</span>
+                <a href="https://www.itmedia.co.jp/news/articles/2602/16/news130.html" target="_blank" rel="noopener">VTuber「ぶいすぽっ！」、性的イラストの作成者を特定 損害賠償1000万円を求め、示談成立</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
@@ -2179,23 +2252,23 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.gizmodo.jp/2026/02/toshiba-pocket-radio-ax-pr40.html?cx_click=pc_ranking" target="_blank" rel="noopener">ポケットラジオ絶滅せず。令和に東芝が新モデルを発売</a>
-              </li>
-              <li>
-                <span class="ranking-number rank-2">2</span>
                 <a href="https://www.gizmodo.jp/2026/02/ratoc-systems-multi-display-adapter.html?cx_click=pc_ranking" target="_blank" rel="noopener">さよなら配線地獄。簡単にマルチディスプレイ環境を実現するアダプター</a>
               </li>
               <li>
+                <span class="ranking-number rank-2">2</span>
+                <a href="https://www.gizmodo.jp/2026/02/toshiba-pocket-radio-ax-pr40.html?cx_click=pc_ranking" target="_blank" rel="noopener">ポケットラジオ絶滅せず。令和に東芝が新モデルを発売</a>
+              </li>
+              <li>
                 <span class="ranking-number rank-3">3</span>
-                <a href="https://www.gizmodo.jp/2026/02/ast-spacemobile-unfolds-the-largest-commercial-communications-array-antenna-in-low-earth-orbit.html?cx_click=pc_ranking" target="_blank" rel="noopener">SpaceXに対抗する存在になるか。ASTが宇宙最大の通信衛星の展開に成功</a>
+                <a href="https://www.gizmodo.jp/2026/02/daiso-hook-belt-carabiner-review.html?cx_click=pc_ranking" target="_blank" rel="noopener">カラビナの弱点を220円で解決。ダイソーならどこにでも吊るせます</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.gizmodo.jp/2026/02/iflytek-ainote-2-keyboard-case.html?cx_click=pc_ranking" target="_blank" rel="noopener">｢手書き特化｣モノクロデバイスに、待望のキーボードケースが登場。二刀流で万能感マシマシ</a>
+                <a href="https://www.gizmodo.jp/2026/02/thermos-backpack.html?cx_click=pc_ranking" target="_blank" rel="noopener">まさに｢背負う魔法瓶｣。サーモスがつくった断熱バックパック</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.gizmodo.jp/2026/02/retrogames_hardware.html?cx_click=pc_ranking" target="_blank" rel="noopener">新鮮? 懐かしい? 昭和・平成時代のゲームができる互換機</a>
+                <a href="https://www.gizmodo.jp/2026/02/daiso-rechargeable-light-review.html?cx_click=pc_ranking" target="_blank" rel="noopener">330円でめちゃ使える。クルマに常備しておきたいダイソーの充電式ライト</a>
               </li>
             </ol>
           </div>
@@ -2212,23 +2285,23 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.theverge.com/tech/879671/apple-special-experience-event-march-2026" target="_blank" rel="noopener">Apple’s doing something on March 4th</a>
-              </li>
-              <li>
-                <span class="ranking-number rank-2">2</span>
                 <a href="https://www.theverge.com/transportation/879975/ford-universal-ev-platform-skunkworks-aero-battery-range" target="_blank" rel="noopener">Ford is fighting against physics to build affordable EVs</a>
               </li>
               <li>
-                <span class="ranking-number rank-3">3</span>
+                <span class="ranking-number rank-2">2</span>
                 <a href="https://www.theverge.com/tech/878485/samsung-galaxy-z-fold-7-travel-keyboard-logitech-laptop-replacement" target="_blank" rel="noopener">Who needs a laptop when you have a folding phone?</a>
               </li>
               <li>
+                <span class="ranking-number rank-3">3</span>
+                <a href="https://www.theverge.com/tech/879671/apple-special-experience-event-march-2026" target="_blank" rel="noopener">Apple’s doing something on March 4th</a>
+              </li>
+              <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.theverge.com/games/879845/valve-steam-deck-oled-out-of-stock-memory-storage-ram-crisis" target="_blank" rel="noopener">Valve’s Steam Deck OLED will be ‘intermittently’ out of stock because of the RAM crisis</a>
+                <a href="https://www.theverge.com/policy/880009/stephen-colbert-cbs-fcc-brendan-carr-talarico-interview" target="_blank" rel="noopener">Stephen Colbert says CBS banned him from airing this James Talarico interview</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.theverge.com/policy/879016/epstein-files-emails-text-errors-encoding" target="_blank" rel="noopener">Why are Epstein’s emails full of equals signs?</a>
+                <a href="https://www.theverge.com/tech/879908/peak-design-crossbody-phone-strap-launch-price" target="_blank" rel="noopener">Peak Design has wearable gadget straps for people who hate bags</a>
               </li>
             </ol>
           </div>
@@ -2245,7 +2318,7 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://mastodon.world/@knowmadd/116072773118828295" target="_blank" rel="noopener">I want to wash my car. The car wash is 50 meters away. Should I walk or drive?</a>
+                <a href="https://www.anthropic.com/news/claude-sonnet-4-6" target="_blank" rel="noopener">Claude Sonnet 4.6</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
@@ -2257,7 +2330,7 @@
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.anthropic.com/news/claude-sonnet-4-6" target="_blank" rel="noopener">Claude Sonnet 4.6</a>
+                <a href="https://news.ycombinator.com/item?id=47049824" target="_blank" rel="noopener">Thank HN: You helped save 33k lives</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
@@ -2311,11 +2384,11 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.wwdjapan.com/articles/2324636" target="_blank" rel="noopener">ラグジュアリー市場の新ターゲットは、少数の最上位顧客「VIC」</a>
+                <a href="https://www.wwdjapan.com/articles/2324141" target="_blank" rel="noopener">「ジュンヤ ワタナベ マン」「メゾン ミハラヤスヒロ」「アイム メン」 が提案する新しい日常着、新しいフォーマル【2026-27年秋冬パリ・メンズダイジェストVol.2】</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
-                <a href="https://www.wwdjapan.com/articles/2324926" target="_blank" rel="noopener">「ジミー チュウ」がメンズ強化に本腰 小木“Poggy”基史との協業で取り組む伝統の更新</a>
+                <a href="https://www.wwdjapan.com/articles/2326209" target="_blank" rel="noopener">虎の子「オニツカ」 あえて成長減速</a>
               </li>
               <li>
                 <span class="ranking-number rank-3">3</span>
@@ -2327,7 +2400,7 @@
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.wwdjapan.com/articles/2324141" target="_blank" rel="noopener">「ジュンヤ ワタナベ マン」「メゾン ミハラヤスヒロ」「アイム メン」 が提案する新しい日常着、新しいフォーマル【2026-27年秋冬パリ・メンズダイジェストVol.2】</a>
+                <a href="https://www.wwdjapan.com/articles/2326697" target="_blank" rel="noopener">「マーク ジェイコブス」が数シーズンぶりに魅せた“普通に着られる服” 90年代の記憶をモダンに再構築</a>
               </li>
             </ol>
           </div>
@@ -2377,23 +2450,23 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.nikkei.com/article/DGXZQOGN130BA0T10C26A2000000/" target="_blank" rel="noopener">日本の対米投融資｢第1弾｣、ガス発電など5.5兆円決定 トランプ氏発表</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUC183G50Y6A210C2000000/" target="_blank" rel="noopener">対米投資第1弾、火力発電で日米企業連合 ソフトバンクGやみずほ銀</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
-                <a href="https://www.nikkei.com/article/DGKKZO94487060Y6A210C2MM8000/" target="_blank" rel="noopener">成長・危機管理に長期投資 首相演説案 多年度で別枠予算 消費減税、法案提出急ぐ</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUA170YG0X10C26A2000000/" target="_blank" rel="noopener">第105代首相に高市早苗氏、衆参両院で選出 第2次内閣発足へ</a>
               </li>
               <li>
                 <span class="ranking-number rank-3">3</span>
-                <a href="https://www.nikkei.com/article/DGKKZO94487630Y6A210C2MM8000/" target="_blank" rel="noopener">資本騒乱(3)究極のリスクマネー、国費 半導体再興、脱・日の丸主義</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUD184RB0Y6A210C2000000/" target="_blank" rel="noopener">旅客機内のモバイルバッテリー使用禁止へ 国交省、持ち込み数制限も</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.nikkei.com/article/DGKKZO94487120Y6A210C2MM8000/" target="_blank" rel="noopener">東京都、データセンター建設に指針 景観・環境に配慮</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUD259TU0V20C25A6000000/" target="_blank" rel="noopener">港のコンテナに盗難ランクル 「ヤード」で解体→不正輸出が横行か</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.nikkei.com/article/DGXZQOGN16AJ00W6A210C2000000/" target="_blank" rel="noopener">アンソロピック、米軍とAI兵器巡り契約解消か ベネズエラ攻撃で亀裂</a>
+                <a href="https://www.nikkei.com/article/DGXZQOUB1648D0W6A210C2000000/" target="_blank" rel="noopener">上場企業3社に1社が最高益 生成AI市場拡大で、フジクラ2年連続</a>
               </li>
             </ol>
           </div>
@@ -2410,28 +2483,29 @@
             <ol class="ranking-list">
               <li>
                 <span class="ranking-number rank-1">1</span>
-                <a href="https://www.bbc.com/news/articles/cx2d9yk2kpjo" target="_blank" rel="noopener">Dual nationals face scramble for UK passports as new rules come into force</a>
+                <a href="https://www.bbc.com/news/articles/c5yv9plyjgpo" target="_blank" rel="noopener">Climber on trial for leaving girlfriend to die on Austria&#39;s highest mountain</a>
               </li>
               <li>
                 <span class="ranking-number rank-2">2</span>
-                <a href="https://www.bbc.com/news/articles/cvgj1qrqd47o" target="_blank" rel="noopener">Nine arrested in France over death of far-right student</a>
+                <a href="https://www.bbc.com/news/articles/c2k8g4p44l0o" target="_blank" rel="noopener">&#39;It&#39;s overwhelming&#39;: Plastic from 1960s Canada washes up on Orkney beach</a>
               </li>
               <li>
                 <span class="ranking-number rank-3">3</span>
-                <a href="https://www.bbc.com/news/articles/cd9g25gp90ko" target="_blank" rel="noopener">US Homeland Security spokeswoman Tricia McLaughlin to leave post</a>
+                <a href="https://www.bbc.com/news/articles/cn87rv0jdy1o" target="_blank" rel="noopener">Under pressure from Trump, Venezuela&#39;s new president has aces up her sleeve</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">4</span>
-                <a href="https://www.bbc.com/news/articles/cp81l0e1eg5o" target="_blank" rel="noopener">US civil rights leader Jesse Jackson dies aged 84</a>
+                <a href="https://www.bbc.com/news/articles/cze0dk3yd5eo" target="_blank" rel="noopener">Stephen Colbert says CBS spiked interview with Democrat over FCC fears</a>
               </li>
               <li>
                 <span class="ranking-number rank-other">5</span>
-                <a href="https://www.bbc.com/news/articles/c98q4mz831mo" target="_blank" rel="noopener">Police assessing Stansted Airport private flights over Epstein ties</a>
+                <a href="https://www.bbc.com/news/articles/cm21d4j26pdo" target="_blank" rel="noopener">William says it has taken &#39;long time to understand my emotions&#39;</a>
               </li>
             </ol>
           </div>
         </div>
       </div>
+      </div> <!-- End swipe-container -->
 
     </main>
   </div>
@@ -2442,13 +2516,23 @@
       document.body.classList.add('js-ready');
 
       var STORAGE_KEY = 'newsflow-ui-state-v1';
+      var SWIPE_HINT_KEY = 'newsflow-swipe-hint-seen-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
       var categoryLabels = document.querySelectorAll('[data-role="category-label"]');
       var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
+      var tabNames = ['news', 'ranking'];
       var tabContents = document.querySelectorAll('.tab-content');
+      var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
+      var swipeHint = document.getElementById('swipe-hint');
+      var swipeContainer = document.getElementById('swipe-container');
+      var mobileQuery = window.matchMedia('(max-width: 768px)');
+
+      function isMobileView() {
+        return mobileQuery.matches;
+      }
 
       function loadState() {
         var fallback = { tab: 'news', category: 'all' };
@@ -2496,15 +2580,29 @@
         saveState(state);
       }
 
-      function showTab(target, state) {
+      function scrollToTab(target, behavior) {
+        if (!swipeContainer || !isMobileView()) {
+          return;
+        }
+        var targetEl = document.getElementById('tab-' + target);
+        if (targetEl) {
+          swipeContainer.scrollTo({
+            left: targetEl.offsetLeft,
+            behavior: behavior || 'smooth'
+          });
+        }
+      }
+
+      function updateUIForTab(target) {
         tabs.forEach(function (tab) {
           var active = tab.getAttribute('data-tab') === target;
           tab.classList.toggle('active', active);
           tab.setAttribute('aria-selected', active ? 'true' : 'false');
         });
 
-        tabContents.forEach(function (content) {
-          content.classList.toggle('active', content.id === 'tab-' + target);
+        // Toggle active class on content as well (optional, for specific styling if needed)
+        document.querySelectorAll('.swipe-slide').forEach(function(slide) {
+             slide.classList.toggle('active', slide.id === 'tab-' + target);
         });
 
         var showCategoryUi = target === 'news';
@@ -2519,22 +2617,95 @@
         }
 
         updateIndicator(target);
+      }
+
+      function showTab(target, state) {
+        updateUIForTab(target);
+        scrollToTab(target, 'smooth');
         state.tab = target;
         saveState(state);
       }
 
-      var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
-      var tabNames = ['news', 'ranking'];
-
       function updateIndicator(target) {
         indicatorDots.forEach(function (dot) {
           dot.classList.toggle('active', dot.getAttribute('data-tab') === target);
+          dot.style.opacity = '';
+          dot.style.transform = '';
         });
+      }
+
+      function tabIndexOrZero(target) {
+        var index = tabNames.indexOf(target);
+        return index === -1 ? 0 : index;
+      }
+
+      function updateIndicatorProgress(progressIndex) {
+        indicatorDots.forEach(function (dot, index) {
+          var distance = Math.abs(index - progressIndex);
+          var opacity = Math.max(0.25, 1 - distance * 0.75);
+          var scale = 1.15 - Math.min(distance, 1) * 0.2;
+          dot.style.opacity = opacity.toFixed(2);
+          dot.style.transform = 'scale(' + scale.toFixed(2) + ')';
+          dot.classList.toggle('active', index === Math.round(progressIndex));
+        });
+      }
+
+      function maybeShowSwipeHint() {
+        if (!swipeHint) {
+          return;
+        }
+        if (!isMobileView()) {
+          swipeHint.classList.add('hidden');
+          return;
+        }
+
+        var seen = false;
+        try {
+          seen = localStorage.getItem(SWIPE_HINT_KEY) === '1';
+        } catch (e) {
+          seen = false;
+        }
+
+        if (seen) {
+          swipeHint.classList.add('hidden');
+          return;
+        }
+
+        swipeHint.classList.remove('hidden');
+        window.setTimeout(function () {
+          swipeHint.classList.add('hidden');
+          try {
+            localStorage.setItem(SWIPE_HINT_KEY, '1');
+          } catch (e) {
+            // Ignore storage errors.
+          }
+        }, 2800);
       }
 
       var state = loadState();
       if (!categoryExists(state.category)) {
         state.category = 'all';
+      }
+
+      if (swipeContainer) {
+        swipeContainer.addEventListener('scroll', function () {
+          if (!isMobileView()) {
+            return;
+          }
+          var width = swipeContainer.offsetWidth;
+          if (!width) {
+            return;
+          }
+          var progressIndex = swipeContainer.scrollLeft / width;
+          var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
+          updateIndicatorProgress(clamped);
+          var target = tabNames[Math.round(clamped)];
+          if (target && state.tab !== target) {
+            state.tab = target;
+            saveState(state);
+            updateUIForTab(target);
+          }
+        }, { passive: true });
       }
 
       categoryFilters.forEach(function (btn) {
@@ -2545,85 +2716,38 @@
 
       tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-          showTab(tab.getAttribute('data-tab'), state);
+          // Manually update state and UI first for responsiveness, then scroll
+          var target = tab.getAttribute('data-tab');
+          showTab(target, state);
         });
       });
 
       showCategory(state.category, state);
-      showTab(state.tab, state);
-
-      // Mobile swipe to switch tabs
-      (function () {
-        var mainEl = document.querySelector('.main');
-        if (!mainEl) return;
-        var startX = 0, startY = 0, currentX = 0;
-        var tracking = false, isHorizontal = null;
-        var SWIPE_THRESHOLD = 50;
-        var DIRECTION_LOCK_THRESHOLD = 10;
-
-        function isScrollableElement(el) {
-          while (el && el !== mainEl) {
-            if (el.classList && (el.classList.contains('mobile-category-scroll'))) {
-              return true;
-            }
-            var style = window.getComputedStyle(el);
-            if (style.overflowX === 'auto' || style.overflowX === 'scroll') {
-              if (el.scrollWidth > el.clientWidth) return true;
-            }
-            el = el.parentElement;
-          }
-          return false;
+      updateUIForTab(state.tab);
+      setTimeout(function () {
+        if (isMobileView()) {
+          scrollToTab(state.tab, 'auto');
+          updateIndicatorProgress(tabIndexOrZero(state.tab));
+        } else {
+          updateIndicator(state.tab);
         }
+        maybeShowSwipeHint();
+      }, 100);
 
-        mainEl.addEventListener('touchstart', function (e) {
-          if (window.innerWidth > 768) return;
-          if (isScrollableElement(e.target)) return;
-          var touch = e.touches[0];
-          startX = touch.clientX;
-          startY = touch.clientY;
-          currentX = startX;
-          tracking = true;
-          isHorizontal = null;
-        }, { passive: true });
-
-        mainEl.addEventListener('touchmove', function (e) {
-          if (!tracking) return;
-          var touch = e.touches[0];
-          currentX = touch.clientX;
-          var dx = Math.abs(touch.clientX - startX);
-          var dy = Math.abs(touch.clientY - startY);
-
-          // Lock direction once we've moved enough
-          if (isHorizontal === null && (dx > DIRECTION_LOCK_THRESHOLD || dy > DIRECTION_LOCK_THRESHOLD)) {
-            isHorizontal = dx > dy;
+      if (mobileQuery.addEventListener) {
+        mobileQuery.addEventListener('change', function () {
+          updateUIForTab(state.tab);
+          if (isMobileView()) {
+            scrollToTab(state.tab, 'auto');
+            updateIndicatorProgress(tabIndexOrZero(state.tab));
+            maybeShowSwipeHint();
+          } else {
+            updateIndicator(state.tab);
           }
+        });
+      }
 
-          // If swiping horizontally, prevent vertical scroll
-          if (isHorizontal) {
-            e.preventDefault();
-          }
-
-          // If vertical, cancel tracking
-          if (isHorizontal === false) {
-            tracking = false;
-          }
-        }, { passive: false });
-
-        mainEl.addEventListener('touchend', function (e) {
-          if (!tracking) return;
-          tracking = false;
-          if (!isHorizontal) return;
-          var dx = currentX - startX;
-          if (Math.abs(dx) < SWIPE_THRESHOLD) return;
-
-          var currentIdx = tabNames.indexOf(state.tab);
-          if (dx < 0 && currentIdx < tabNames.length - 1) {
-            showTab(tabNames[currentIdx + 1], state);
-          } else if (dx > 0 && currentIdx > 0) {
-            showTab(tabNames[currentIdx - 1], state);
-          }
-        }, { passive: true });
-      })();
+      // (Replaces previous touch event listeners)
     })();
   </script>
 </body>
