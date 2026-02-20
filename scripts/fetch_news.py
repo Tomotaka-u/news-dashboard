@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Fetch RSS feeds and generate the news dashboard HTML."""
 
+import json
 import os
 import re
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin
 
@@ -11,14 +13,20 @@ import feedparser
 import requests
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 # Add scripts directory to path so config can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
+from config import CATEGORIES, DISPLAY_CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
 
 JST = timezone(timedelta(hours=9))
 USER_AGENT = "NewsDashboard/1.0 (+https://github.com/Tomotaka-u/news-dashboard)"
 REQUEST_TIMEOUT = 15
+RETRY_TOTAL = 3
+RETRY_BACKOFF = 0.7
+RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
+SNS_API_RETRY_TOTAL = 2
 
 
 def sanitize_text(text):
@@ -48,10 +56,29 @@ def append_ranking_item(items, seen, title, href, base_url, min_title_length=1):
     items.append({"title": clean_title, "link": link})
 
 
-def fetch_feed(site):
+def build_http_session():
+    """Create a requests session with retry policy for transient failures."""
+    retry = Retry(
+        total=RETRY_TOTAL,
+        connect=RETRY_TOTAL,
+        read=RETRY_TOTAL,
+        status=RETRY_TOTAL,
+        backoff_factor=RETRY_BACKOFF,
+        status_forcelist=RETRY_STATUS_CODES,
+        allowed_methods=frozenset(["GET"]),
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def fetch_feed(session, site):
     """Fetch and parse an RSS feed for a single site."""
     try:
-        resp = requests.get(
+        resp = session.get(
             site["url"],
             headers={"User-Agent": USER_AGENT},
             timeout=REQUEST_TIMEOUT,
@@ -377,7 +404,7 @@ RANKING_EXTRACTORS = {
 }
 
 
-def fetch_scrape_news(site):
+def fetch_scrape_news(session, site):
     """Fetch news items from a site via HTML scraping (non-RSS)."""
     url = site["url"]
     scrape_type = site.get("scrape_type")
@@ -385,7 +412,7 @@ def fetch_scrape_news(site):
         return []
 
     try:
-        resp = requests.get(
+        resp = session.get(
             url,
             headers={"User-Agent": USER_AGENT},
             timeout=REQUEST_TIMEOUT,
@@ -410,7 +437,7 @@ def fetch_scrape_news(site):
     return items[:MAX_ITEMS_PER_SITE]
 
 
-def fetch_ranking(site):
+def fetch_ranking(session, site):
     """Fetch ranking/popular articles for a site via scraping."""
     ranking_url = site.get("ranking_url")
     ranking_type = site.get("ranking_type")
@@ -418,7 +445,7 @@ def fetch_ranking(site):
         return []
 
     try:
-        resp = requests.get(
+        resp = session.get(
             ranking_url,
             headers={"User-Agent": USER_AGENT},
             timeout=REQUEST_TIMEOUT,
@@ -462,70 +489,148 @@ def fetch_ranking(site):
     return fallback_items[:MAX_RANKING_ITEMS]
 
 
-def fetch_sns_posts(category):
-    """Fetch trending X posts for a single SNS category via xAI Grok API."""
-    import json as _json
+def _extract_json_array_from_text(text):
+    """Extract the first JSON array from model output text."""
+    decoder = json.JSONDecoder()
+    text = (text or "").strip()
+    if not text:
+        return None
 
+    candidates = [text]
+
+    fenced_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, flags=re.IGNORECASE)
+    if fenced_match:
+        candidates.append(fenced_match.group(1).strip())
+
+    for candidate in candidates:
+        try:
+            loaded = json.loads(candidate)
+            if isinstance(loaded, list):
+                return loaded
+        except json.JSONDecodeError:
+            pass
+
+    for idx, char in enumerate(text):
+        if char != "[":
+            continue
+        try:
+            loaded, _ = decoder.raw_decode(text[idx:])
+            if isinstance(loaded, list):
+                return loaded
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _normalize_sns_post(post):
+    """Normalize SNS post shape and discard invalid entries."""
+    if not isinstance(post, dict):
+        return None
+
+    author = post.get("author", "")
+    content = post.get("content", "")
+    url = post.get("url", "")
+
+    if not isinstance(author, str):
+        author = ""
+    if not isinstance(content, str):
+        return None
+    if not isinstance(url, str):
+        url = ""
+
+    author = sanitize_text(author)
+    content = sanitize_text(content)
+    url = url.strip()
+
+    if not content:
+        return None
+    if url and not url.lower().startswith(("http://", "https://")):
+        url = ""
+
+    return {"author": author, "content": content, "url": url}
+
+
+def _extract_sns_output_texts(data):
+    """Collect output text blocks from xAI response payload."""
+    texts = []
+    for item in data.get("output", []):
+        if item.get("type") != "message" or item.get("role") != "assistant":
+            continue
+        for block in item.get("content", []):
+            if block.get("type") == "output_text" and isinstance(block.get("text"), str):
+                texts.append(block["text"])
+    return texts
+
+
+def fetch_sns_posts(session, category):
+    """Fetch trending X posts for a single SNS category via xAI Grok API."""
     api_key = os.environ.get("XAI_API_KEY", "")
     if not api_key:
         print(f"[SNS SKIP] XAI_API_KEY not set, skipping {category['label']}")
         return []
 
-    try:
-        resp = requests.post(
-            "https://api.x.ai/v1/responses",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-            json={
-                "model": "grok-4-1-fast-reasoning",
-                "input": [{"role": "user", "content": category["prompt"]}],
-                "tools": [{"type": "x_search"}],
-                "temperature": 0.7,
-            },
-            timeout=120,
-        )
-        resp.raise_for_status()
-    except requests.exceptions.RequestException as exc:
-        print(f"[SNS ERROR] {category['label']} API request failed: {exc}")
-        return []
+    resp = None
+    for attempt in range(1, SNS_API_RETRY_TOTAL + 1):
+        try:
+            resp = session.post(
+                "https://api.x.ai/v1/responses",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                json={
+                    "model": "grok-4-1-fast-reasoning",
+                    "input": [{"role": "user", "content": category["prompt"]}],
+                    "tools": [{"type": "x_search"}],
+                    "temperature": 0.7,
+                },
+                timeout=120,
+            )
+            resp.raise_for_status()
+            break
+        except requests.exceptions.RequestException as exc:
+            if attempt == SNS_API_RETRY_TOTAL:
+                print(f"[SNS ERROR] {category['label']} API request failed: {exc}")
+                return []
+            wait_seconds = RETRY_BACKOFF * (2 ** (attempt - 1))
+            print(
+                f"[SNS WARN] {category['label']} API request failed on attempt {attempt}. "
+                f"Retrying in {wait_seconds:.1f}s..."
+            )
+            time.sleep(wait_seconds)
 
     try:
         data = resp.json()
-        # Find the assistant message with output_text
-        for item in data.get("output", []):
-            if item.get("type") == "message" and item.get("role") == "assistant":
-                for block in item.get("content", []):
-                    if block.get("type") == "output_text":
-                        text = block["text"].strip()
-                        # Extract JSON array from the response
-                        start = text.find("[")
-                        end = text.rfind("]") + 1
-                        if start >= 0 and end > start:
-                            posts = _json.loads(text[start:end])
-                            return [
-                                {
-                                    "author": p.get("author", ""),
-                                    "content": p.get("content", ""),
-                                    "url": p.get("url", ""),
-                                }
-                                for p in posts
-                                if p.get("content")
-                            ]
-        print(f"[SNS WARN] {category['label']} no output_text found in response")
+        output_texts = _extract_sns_output_texts(data)
+        if not output_texts:
+            print(f"[SNS WARN] {category['label']} no output_text found in response")
+            return []
+
+        for output_text in output_texts:
+            posts = _extract_json_array_from_text(output_text)
+            if posts is None:
+                continue
+
+            normalized_posts = []
+            for post in posts:
+                normalized = _normalize_sns_post(post)
+                if normalized:
+                    normalized_posts.append(normalized)
+            return normalized_posts
+
+        print(f"[SNS WARN] {category['label']} JSON array not found in model output")
         return []
-    except (ValueError, KeyError, _json.JSONDecodeError) as exc:
+    except (ValueError, KeyError, json.JSONDecodeError) as exc:
         print(f"[SNS ERROR] {category['label']} response parse failed: {exc}")
         return []
 
 
-def fetch_all_sns():
+def fetch_all_sns(session):
     """Fetch SNS posts for all categories. Returns list of category dicts."""
     results = []
     for cat in SNS_CATEGORIES:
         print(f"Fetching SNS: {cat['label']} ...")
-        posts = fetch_sns_posts(cat)
+        posts = fetch_sns_posts(session, cat)
         print(f"  -> {len(posts)} posts")
         results.append({
             "key": cat["key"],
@@ -567,94 +672,96 @@ def init_category_data():
 
 
 def build_display_categories(category_data):
-    """Merge internal categories by shared display labels for the template."""
-    display_by_label = {}
+    """Build display categories from explicit merge definitions."""
     display_categories = []
 
-    for cat_key, cat_info in CATEGORIES.items():
-        label = cat_info["label"]
-        bucket = display_by_label.get(label)
-        if bucket is None:
-            bucket = {
-                "label": label,
-                "color": cat_info["color"],
-                "sites": [],
-                "total": 0,
-                "source_count": 0,
-            }
-            display_by_label[label] = bucket
-            display_categories.append(bucket)
-
-        cat_bucket = category_data.get(cat_key, {"sites": [], "total": 0})
-        bucket["sites"].extend(cat_bucket["sites"])
-        bucket["total"] += cat_bucket["total"]
-        bucket["source_count"] += len(cat_bucket["sites"])
+    for display in DISPLAY_CATEGORIES:
+        bucket = {
+            "label": display["label"],
+            "color": display["color"],
+            "sites": [],
+            "total": 0,
+            "source_count": 0,
+        }
+        for source_cat in display["source_categories"]:
+            cat_bucket = category_data.get(source_cat)
+            if cat_bucket is None:
+                print(f"[CONFIG WARN] source category '{source_cat}' not found for display '{display['key']}'")
+                continue
+            bucket["sites"].extend(cat_bucket["sites"])
+            bucket["total"] += cat_bucket["total"]
+            bucket["source_count"] += len(cat_bucket["sites"])
+        display_categories.append(bucket)
 
     return display_categories
 
 
 def main():
+    session = build_http_session()
     category_data = init_category_data()
     ranking_data = []
     ranking_total_sources = sum(1 for site in SITES if site.get("ranking_url"))
     ranking_success_sources = 0
 
-    for site in SITES:
-        cat = site["category"]
-        print(f"Fetching: {site['name']} ...")
-        if site.get("type") == "scrape":
-            items = fetch_scrape_news(site)
-        else:
-            items = fetch_feed(site)
-        print(f"  -> {len(items)} items")
-        if items:
-            category_data[cat]["sites"].append(build_site_view_model(site, items))
-            category_data[cat]["total"] += len(items)
+    try:
+        for site in SITES:
+            cat = site["category"]
+            print(f"Fetching: {site['name']} ...")
+            if site.get("type") == "scrape":
+                items = fetch_scrape_news(session, site)
+            else:
+                items = fetch_feed(session, site)
+            print(f"  -> {len(items)} items")
+            if items:
+                category_data[cat]["sites"].append(build_site_view_model(site, items))
+                category_data[cat]["total"] += len(items)
 
-        if site.get("ranking_url"):
-            print(f"  Fetching ranking: {site['name']} ...")
-            ranking_items = fetch_ranking(site)
-            print(f"  -> {len(ranking_items)} ranking items")
-            if ranking_items:
-                ranking_data.append(build_site_view_model(site, ranking_items))
-                ranking_success_sources += 1
+            if site.get("ranking_url"):
+                print(f"  Fetching ranking: {site['name']} ...")
+                ranking_items = fetch_ranking(session, site)
+                print(f"  -> {len(ranking_items)} ranking items")
+                if ranking_items:
+                    ranking_data.append(build_site_view_model(site, ranking_items))
+                    ranking_success_sources += 1
 
-    display_categories = build_display_categories(category_data)
-    overall_total = sum(category["total"] for category in display_categories)
+        display_categories = build_display_categories(category_data)
+        overall_total = sum(category["total"] for category in display_categories)
 
-    # Fetch SNS data
-    sns_data = fetch_all_sns()
+        # Fetch SNS data
+        sns_data = fetch_all_sns(session)
 
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    template_dir = os.path.join(project_root, "templates")
-    env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
-    template = env.get_template("index.html.j2")
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        template_dir = os.path.join(project_root, "templates")
+        env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
+        template = env.get_template("index.html.j2")
 
-    now_jst = datetime.now(JST)
-    ranking_status = {
-        "total_sources": ranking_total_sources,
-        "success_sources": ranking_success_sources,
-        "failed_sources": ranking_total_sources - ranking_success_sources,
-        "updated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
-    }
-    html = template.render(
-        display_categories=display_categories,
-        overall_total=overall_total,
-        all_sites=SITES,
-        ranking_data=ranking_data,
-        ranking_status=ranking_status,
-        sns_data=sns_data,
-        updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
-    )
+        now_jst = datetime.now(JST)
+        ranking_status = {
+            "total_sources": ranking_total_sources,
+            "success_sources": ranking_success_sources,
+            "failed_sources": ranking_total_sources - ranking_success_sources,
+            "updated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        }
+        html = template.render(
+            display_categories=display_categories,
+            overall_total=overall_total,
+            all_sites=SITES,
+            ranking_data=ranking_data,
+            ranking_status=ranking_status,
+            sns_data=sns_data,
+            updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        )
 
-    docs_dir = os.path.join(project_root, "docs")
-    os.makedirs(docs_dir, exist_ok=True)
-    output_path = os.path.join(docs_dir, "index.html")
-    with open(output_path, "w", encoding="utf-8") as file_obj:
-        file_obj.write(html)
+        docs_dir = os.path.join(project_root, "docs")
+        os.makedirs(docs_dir, exist_ok=True)
+        output_path = os.path.join(docs_dir, "index.html")
+        with open(output_path, "w", encoding="utf-8") as file_obj:
+            file_obj.write(html)
 
-    print(f"\nGenerated: {output_path}")
-    print(f"Updated at: {now_jst.strftime('%Y-%m-%d %H:%M JST')}")
+        print(f"\nGenerated: {output_path}")
+        print(f"Updated at: {now_jst.strftime('%Y-%m-%d %H:%M JST')}")
+    finally:
+        session.close()
 
 
 if __name__ == "__main__":

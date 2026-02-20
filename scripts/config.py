@@ -182,6 +182,27 @@ CATEGORIES = {
     "general": {"label": "ニュース・ビジネス", "color": "#0ea5e9"},
 }
 
+DISPLAY_CATEGORIES = [
+    {
+        "key": "tech",
+        "label": "テック・AI",
+        "color": "#6366f1",
+        "source_categories": ["tech"],
+    },
+    {
+        "key": "fashion",
+        "label": "ファッション・デザイン",
+        "color": "#ec4899",
+        "source_categories": ["fashion"],
+    },
+    {
+        "key": "news-business",
+        "label": "ニュース・ビジネス",
+        "color": "#0ea5e9",
+        "source_categories": ["business", "general"],
+    },
+]
+
 MAX_ITEMS_PER_SITE = 8
 MAX_RANKING_ITEMS = 5
 
