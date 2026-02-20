@@ -25,6 +25,8 @@ jobs:
 
       - name: Fetch news and generate HTML
         run: python scripts/fetch_news.py
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
 
       - name: Commit and push if changed
         run: |

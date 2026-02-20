@@ -184,3 +184,130 @@ CATEGORIES = {
 
 MAX_ITEMS_PER_SITE = 8
 MAX_RANKING_ITEMS = 5
+
+# SNS (X/Twitter) categories fetched via xAI Grok API
+SNS_CATEGORIES = [
+    {
+        "key": "jp_trending",
+        "label": "日本で話題",
+        "badge": "JP",
+        "accent_color": "#ef4444",
+        "icon_gradient": "linear-gradient(135deg, #ef4444, #f87171)",
+        "prompt": (
+            "あなたはX（旧Twitter）のトレンドアナリストです。\n"
+            "日本国内で直近24時間に話題になっている注目ポストを調査してください。\n\n"
+            "要件:\n"
+            "- 話題性・重要度の高いポストを8〜10件選出\n"
+            "- 各ポストの投稿者名、内容の要約、ポストURLを含める\n"
+            "- リプライや宣伝ポストは除外し、情報価値の高いものを優先\n"
+            "- 日本語のポストを対象とする\n\n"
+            "以下のJSON形式のみ出力してください:\n"
+            '[{"author":"表示名 (@ユーザー名)","content":"ポスト内容の要約（100字以内）","url":"ポストのURL"}]'
+        ),
+    },
+    {
+        "key": "global_trending",
+        "label": "海外で話題",
+        "badge": "GLOBAL",
+        "accent_color": "#10b981",
+        "icon_gradient": "linear-gradient(135deg, #10b981, #34d399)",
+        "prompt": (
+            "You are an X (Twitter) trend analyst.\n"
+            "Find notable posts trending globally in the last 24 hours.\n\n"
+            "Requirements:\n"
+            "- Select 8-10 high-impact, newsworthy posts\n"
+            "- Include author name, content summary, and post URL\n"
+            "- Exclude replies and promotional posts; prioritize informational value\n"
+            "- Focus on English-language posts\n\n"
+            "Output ONLY the following JSON format:\n"
+            '[{"author":"Display Name (@username)","content":"Post summary (under 100 chars)","url":"Post URL"}]'
+        ),
+    },
+    {
+        "key": "ai_jp",
+        "label": "AI (日本語)",
+        "badge": "AI-JP",
+        "accent_color": "#8b5cf6",
+        "icon_gradient": "linear-gradient(135deg, #8b5cf6, #a78bfa)",
+        "prompt": (
+            "あなたはX（旧Twitter）のAI分野トレンドアナリストです。\n"
+            "AI・機械学習・LLMに関する直近24時間の注目ポストを調査してください。\n\n"
+            "選定基準（厳守）:\n"
+            "- いいね数やRT数が多く、広く拡散されているポストのみ選出\n"
+            "- 以下のようなニュースバリューがあるものを優先:\n"
+            "  - 新モデル・新サービスのリリース発表\n"
+            "  - 大手企業のAI関連の重要発表\n"
+            "  - 注目の研究論文・ベンチマーク結果\n"
+            "  - 業界に影響を与える規制・政策の動き\n"
+            "  - 著名な研究者・開発者による重要な知見\n"
+            "- 8〜10件選出\n\n"
+            "除外対象:\n"
+            "- エンゲージメントが低い個人の感想・日常的なつぶやき\n"
+            "  （ただしバズっている感想・レビュー・「試してみた」系は選出OK）\n"
+            "- アフィリエイト・有料note誘導・セミナー宣伝\n"
+            "- リプライ・引用RTのみのポスト\n"
+            "- フォロワー数が少なくエンゲージメントも低いポスト\n\n"
+            "日本語のポストを対象とする。\n\n"
+            "以下のJSON形式のみ出力してください:\n"
+            '[{"author":"表示名 (@ユーザー名)","content":"ポスト内容の要約（100字以内）","url":"ポストのURL"}]'
+        ),
+    },
+    {
+        "key": "ai_en",
+        "label": "AI (English)",
+        "badge": "AI-EN",
+        "accent_color": "#8b5cf6",
+        "icon_gradient": "linear-gradient(135deg, #8b5cf6, #a78bfa)",
+        "prompt": (
+            "You are an X (Twitter) AI trend analyst.\n"
+            "Find notable posts about AI, machine learning, and LLMs from the last 24 hours.\n\n"
+            "Selection criteria (strict):\n"
+            "- ONLY select posts with high engagement (many likes/retweets)\n"
+            "- Prioritize posts with real news value:\n"
+            "  - New model/product launches and announcements\n"
+            "  - Major company AI announcements\n"
+            "  - Breakthrough research papers and benchmark results\n"
+            "  - Significant regulatory or policy developments\n"
+            "  - Key insights from prominent researchers/engineers\n"
+            "- Select 8-10 posts\n\n"
+            "Exclude:\n"
+            "- Low-engagement personal opinions and casual commentary\n"
+            "  (However, viral reviews/impressions/'just tried X' posts with high engagement ARE welcome)\n"
+            "- Promotional content, course/newsletter ads, affiliate links\n"
+            "- Replies and quote tweets\n"
+            "- Low-follower accounts with minimal engagement\n\n"
+            "Focus on English-language posts.\n\n"
+            "Output ONLY the following JSON format:\n"
+            '[{"author":"Display Name (@username)","content":"Post summary (under 100 chars)","url":"Post URL"}]'
+        ),
+    },
+    {
+        "key": "blockchain",
+        "label": "ブロックチェーン",
+        "badge": "CHAIN",
+        "accent_color": "#f59e0b",
+        "icon_gradient": "linear-gradient(135deg, #f59e0b, #fbbf24)",
+        "prompt": (
+            "あなたはX（旧Twitter）のブロックチェーン分野トレンドアナリストです。\n"
+            "ブロックチェーン・DeFi・Web3に関する直近24時間の注目ポストを調査してください。\n\n"
+            "選定基準（厳守）:\n"
+            "- いいね数やRT数が多く、広く拡散されているポストのみ選出\n"
+            "- 以下のようなニュースバリューがあるものを優先:\n"
+            "  - プロトコルの大型アップデート・ローンチ\n"
+            "  - 大手企業・VCの投資・提携発表\n"
+            "  - 規制・法整備に関する重要な動き\n"
+            "  - セキュリティインシデント・ハッキング事案\n"
+            "  - 技術的に重要なブレイクスルー\n"
+            "- 8〜10件選出\n\n"
+            "除外対象:\n"
+            "- 単純な価格予想・価格速報（「BTC○○ドル突破」など）\n"
+            "- 煽り系・FOMO誘発ポスト（「まだ間に合う」「100x確定」など）\n"
+            "- エアドロップ告知・ギブアウェイ・アフィリエイト\n"
+            "- リプライ・引用RTのみのポスト\n"
+            "- フォロワー数が少なくエンゲージメントも低いポスト\n\n"
+            "日本語・英語両方のポストを対象とする。\n\n"
+            "以下のJSON形式のみ出力してください:\n"
+            '[{"author":"表示名 (@ユーザー名)","content":"ポスト内容の要約（100字以内）","url":"ポストのURL"}]'
+        ),
+    },
+]

@@ -14,7 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Add scripts directory to path so config can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES
+from config import CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
 
 JST = timezone(timedelta(hours=9))
 USER_AGENT = "NewsDashboard/1.0 (+https://github.com/Tomotaka-u/news-dashboard)"
@@ -462,6 +462,82 @@ def fetch_ranking(site):
     return fallback_items[:MAX_RANKING_ITEMS]
 
 
+def fetch_sns_posts(category):
+    """Fetch trending X posts for a single SNS category via xAI Grok API."""
+    import json as _json
+
+    api_key = os.environ.get("XAI_API_KEY", "")
+    if not api_key:
+        print(f"[SNS SKIP] XAI_API_KEY not set, skipping {category['label']}")
+        return []
+
+    try:
+        resp = requests.post(
+            "https://api.x.ai/v1/responses",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            json={
+                "model": "grok-4-1-fast-reasoning",
+                "input": [{"role": "user", "content": category["prompt"]}],
+                "tools": [{"type": "x_search"}],
+                "temperature": 0.7,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        print(f"[SNS ERROR] {category['label']} API request failed: {exc}")
+        return []
+
+    try:
+        data = resp.json()
+        # Find the assistant message with output_text
+        for item in data.get("output", []):
+            if item.get("type") == "message" and item.get("role") == "assistant":
+                for block in item.get("content", []):
+                    if block.get("type") == "output_text":
+                        text = block["text"].strip()
+                        # Extract JSON array from the response
+                        start = text.find("[")
+                        end = text.rfind("]") + 1
+                        if start >= 0 and end > start:
+                            posts = _json.loads(text[start:end])
+                            return [
+                                {
+                                    "author": p.get("author", ""),
+                                    "content": p.get("content", ""),
+                                    "url": p.get("url", ""),
+                                }
+                                for p in posts
+                                if p.get("content")
+                            ]
+        print(f"[SNS WARN] {category['label']} no output_text found in response")
+        return []
+    except (ValueError, KeyError, _json.JSONDecodeError) as exc:
+        print(f"[SNS ERROR] {category['label']} response parse failed: {exc}")
+        return []
+
+
+def fetch_all_sns():
+    """Fetch SNS posts for all categories. Returns list of category dicts."""
+    results = []
+    for cat in SNS_CATEGORIES:
+        print(f"Fetching SNS: {cat['label']} ...")
+        posts = fetch_sns_posts(cat)
+        print(f"  -> {len(posts)} posts")
+        results.append({
+            "key": cat["key"],
+            "label": cat["label"],
+            "badge": cat["badge"],
+            "accent_color": cat["accent_color"],
+            "icon_gradient": cat["icon_gradient"],
+            "posts": posts,
+        })
+    return results
+
+
 def build_site_view_model(site, items):
     """Build UI-facing site payload with defaults in one place."""
     return {
@@ -546,6 +622,9 @@ def main():
     display_categories = build_display_categories(category_data)
     overall_total = sum(category["total"] for category in display_categories)
 
+    # Fetch SNS data
+    sns_data = fetch_all_sns()
+
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     template_dir = os.path.join(project_root, "templates")
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
@@ -564,6 +643,7 @@ def main():
         all_sites=SITES,
         ranking_data=ranking_data,
         ranking_status=ranking_status,
+        sns_data=sns_data,
         updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
     )
 

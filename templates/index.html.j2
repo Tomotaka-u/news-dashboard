@@ -680,6 +680,36 @@
       font-size: 14px;
     }
 
+    /* SNS Grid */
+    .sns-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      margin-bottom: 44px;
+    }
+
+    .sns-author {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .sns-text {
+      display: block;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .sns-no-link {
+      opacity: 0.6;
+    }
+
+    .sns-no-link .sns-text {
+      color: var(--text-secondary);
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
@@ -741,7 +771,7 @@
 
       <div class="sidebar-footer">
         Daily News Dashboard<br>
-        Powered by RSS + GitHub Actions
+        Powered by RSS + xAI + GitHub Actions
       </div>
     </aside>
 
@@ -753,11 +783,14 @@
           aria-controls="tab-news">Today's News</button>
         <button type="button" id="tab-btn-ranking" class="main-tab" data-tab="ranking" role="tab" aria-selected="false"
           aria-controls="tab-ranking">Rankings</button>
+        <button type="button" id="tab-btn-sns" class="main-tab" data-tab="sns" role="tab" aria-selected="false"
+          aria-controls="tab-sns">SNS</button>
       </div>
 
       <div class="tab-indicator" id="tab-indicator">
         <span class="tab-indicator-dot active" data-tab="news"></span>
         <span class="tab-indicator-dot" data-tab="ranking"></span>
+        <span class="tab-indicator-dot" data-tab="sns"></span>
       </div>
       <div class="swipe-hint hidden" id="swipe-hint" aria-hidden="true">← スワイプで切り替え →</div>
 
@@ -857,6 +890,62 @@
         </div>
         {%- endif %}
       </div>
+
+      <!-- SNS Tab Content -->
+      <div class="swipe-slide tab-content" id="tab-sns" role="tabpanel" aria-labelledby="tab-btn-sns">
+        <div class="section-header">
+          <div class="section-accent" style="background: #1d9bf0;"></div>
+          <div class="section-title">𝕏 Trending Posts</div>
+          <div class="section-count">{{ sns_data | length }} categories</div>
+        </div>
+        {%- if sns_data %}
+        <div class="sns-grid">
+          {%- for cat in sns_data %}
+          <div class="news-card">
+            <div class="card-accent-stripe" style="background: {{ cat.accent_color }};"></div>
+            <div class="card-header">
+              <div class="source-icon" style="background: {{ cat.icon_gradient }};">𝕏</div>
+              <div class="source-info" style="cursor:default">
+                <div class="source-name">{{ cat.label }}</div>
+                <div class="source-url">x.com</div>
+              </div>
+              <div class="source-badge" style="background: {{ cat.accent_color }}11; color: {{ cat.accent_color }};">{{ cat.badge }}</div>
+            </div>
+            <ul class="card-headlines sns-post-list">
+              {%- for post in cat.posts %}
+              <li>
+                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <div class="headline-content">
+                  {%- if post.url %}
+                  <a href="{{ post.url }}" target="_blank" rel="noopener">
+                    <span class="sns-author">{{ post.author }}</span>
+                    <span class="sns-text">{{ post.content }}</span>
+                  </a>
+                  {%- else %}
+                  <span class="sns-no-link">
+                    <span class="sns-author">{{ post.author }}</span>
+                    <span class="sns-text">{{ post.content }}</span>
+                  </span>
+                  {%- endif %}
+                </div>
+              </li>
+              {%- endfor %}
+              {%- if not cat.posts %}
+              <li style="padding:20px 24px;color:var(--text-muted);font-size:13px;">データを取得できませんでした</li>
+              {%- endif %}
+            </ul>
+          </div>
+          {%- endfor %}
+        </div>
+        {%- else %}
+        <div class="ranking-empty">
+          No SNS data available
+        </div>
+        {%- endif %}
+      </div>
       </div> <!-- End swipe-container -->
 
     </main>
@@ -875,7 +964,7 @@
       var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
-      var tabNames = ['news', 'ranking'];
+      var tabNames = ['news', 'ranking', 'sns'];
       var tabContents = document.querySelectorAll('.tab-content');
       var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
       var swipeHint = document.getElementById('swipe-hint');
@@ -893,7 +982,7 @@
           if (!raw) return fallback;
           var parsed = JSON.parse(raw);
           return {
-            tab: parsed.tab === 'ranking' ? 'ranking' : 'news',
+            tab: ['news', 'ranking', 'sns'].indexOf(parsed.tab) !== -1 ? parsed.tab : 'news',
             category: typeof parsed.category === 'string' ? parsed.category : 'all',
           };
         } catch (e) {
@@ -957,7 +1046,7 @@
              slide.classList.toggle('active', slide.id === 'tab-' + target);
         });
 
-        var showCategoryUi = target === 'news';
+        var showCategoryUi = (target === 'news');
         sidebarCategoryFilters.forEach(function (btn) {
           btn.style.display = showCategoryUi ? '' : 'none';
         });
