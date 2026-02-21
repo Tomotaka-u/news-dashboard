@@ -6,8 +6,10 @@
       var SWIPE_HINT_KEY = 'newsflow-swipe-hint-seen-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
+      var sidebarSourceLinks = document.querySelectorAll('.sidebar .source-list-link');
       var categoryLabels = document.querySelectorAll('[data-role="category-label"]');
       var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
+      var mobileSourceList = document.getElementById('mobile-source-list');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
       var tabNames = ['news', 'ranking', 'sns'];
@@ -15,10 +17,41 @@
       var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
       var swipeHint = document.getElementById('swipe-hint');
       var swipeContainer = document.getElementById('swipe-container');
+      var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      var mobileMenuCloseBtn = document.getElementById('mobile-menu-close');
+      var mobileSourceDrawer = document.getElementById('mobile-source-drawer');
+      var mobileDrawerBackdrop = document.getElementById('mobile-drawer-backdrop');
       var mobileQuery = window.matchMedia('(max-width: 768px)');
 
       function isMobileView() {
         return mobileQuery.matches;
+      }
+
+      function populateMobileSourceLinks() {
+        if (!mobileSourceList || mobileSourceList.children.length > 0) {
+          return;
+        }
+
+        sidebarSourceLinks.forEach(function (link) {
+          var clone = link.cloneNode(true);
+          clone.classList.remove('nav-item');
+          clone.classList.add('mobile-source-link');
+          clone.removeAttribute('style');
+          mobileSourceList.appendChild(clone);
+        });
+      }
+
+      function setMobileMenuOpen(open) {
+        if (!mobileSourceDrawer || !mobileDrawerBackdrop || !mobileMenuBtn) {
+          return;
+        }
+        var shouldOpen = Boolean(open) && isMobileView();
+        mobileSourceDrawer.classList.toggle('open', shouldOpen);
+        mobileDrawerBackdrop.classList.toggle('open', shouldOpen);
+        mobileSourceDrawer.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        mobileDrawerBackdrop.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        mobileMenuBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        document.body.classList.toggle('mobile-menu-open', shouldOpen);
       }
 
       function loadState() {
@@ -65,6 +98,7 @@
         });
         state.category = category;
         saveState(state);
+        requestSyncSwipeContainerHeight(state.tab);
       }
 
       function scrollToTab(target, behavior) {
@@ -104,6 +138,7 @@
         }
 
         updateIndicator(target);
+        requestSyncSwipeContainerHeight(target);
       }
 
       function showTab(target, state) {
@@ -192,6 +227,32 @@
         return tabNames.indexOf(target) !== -1 ? target : tabNames[0];
       }
 
+      function syncSwipeContainerHeight(targetTab) {
+        if (!swipeContainer) {
+          return;
+        }
+        if (!isMobileView()) {
+          swipeContainer.style.height = '';
+          return;
+        }
+
+        var activeTab = targetTab || tabNames[0];
+        var activeSlide = document.getElementById('tab-' + activeTab);
+        if (!activeSlide) {
+          return;
+        }
+        var nextHeight = activeSlide.offsetHeight;
+        if (nextHeight > 0) {
+          swipeContainer.style.height = nextHeight + 'px';
+        }
+      }
+
+      function requestSyncSwipeContainerHeight(targetTab) {
+        window.requestAnimationFrame(function () {
+          syncSwipeContainerHeight(targetTab);
+        });
+      }
+
       function updateIndicatorProgress(progressIndex) {
         indicatorDots.forEach(function (dot, index) {
           var distance = Math.abs(index - progressIndex);
@@ -240,6 +301,8 @@
         state.category = 'all';
       }
 
+      populateMobileSourceLinks();
+
       if (swipeContainer) {
         swipeContainer.addEventListener('scroll', function () {
           if (!isMobileView()) {
@@ -249,6 +312,7 @@
           var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
           updateIndicatorProgress(clamped);
           var target = getNearestTabByScrollPosition();
+          requestSyncSwipeContainerHeight(target || state.tab);
           if (target && state.tab !== target) {
             state.tab = target;
             saveState(state);
@@ -256,6 +320,39 @@
           }
         }, { passive: true });
       }
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function () {
+          var isOpen = mobileSourceDrawer && mobileSourceDrawer.classList.contains('open');
+          setMobileMenuOpen(!isOpen);
+        });
+      }
+
+      if (mobileMenuCloseBtn) {
+        mobileMenuCloseBtn.addEventListener('click', function () {
+          setMobileMenuOpen(false);
+        });
+      }
+
+      if (mobileDrawerBackdrop) {
+        mobileDrawerBackdrop.addEventListener('click', function () {
+          setMobileMenuOpen(false);
+        });
+      }
+
+      if (mobileSourceList) {
+        mobileSourceList.addEventListener('click', function (event) {
+          if (event.target.closest('a')) {
+            setMobileMenuOpen(false);
+          }
+        });
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          setMobileMenuOpen(false);
+        }
+      });
 
       categoryFilters.forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -280,11 +377,13 @@
         } else {
           updateIndicator(state.tab);
         }
+        requestSyncSwipeContainerHeight(state.tab);
         maybeShowSwipeHint();
       }, 100);
 
       if (mobileQuery.addEventListener) {
         mobileQuery.addEventListener('change', function () {
+          setMobileMenuOpen(false);
           updateUIForTab(state.tab);
           if (isMobileView()) {
             scrollToTab(state.tab, 'auto');
@@ -293,8 +392,13 @@
           } else {
             updateIndicator(state.tab);
           }
+          requestSyncSwipeContainerHeight(state.tab);
         });
       }
+
+      window.addEventListener('resize', function () {
+        requestSyncSwipeContainerHeight(state.tab);
+      });
 
       // (Replaces previous touch event listeners)
     })();

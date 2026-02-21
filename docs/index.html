@@ -253,6 +253,138 @@
       outline-offset: 2px;
     }
 
+    .mobile-toolbar {
+      display: none;
+      justify-content: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .mobile-menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text-secondary);
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.2s ease;
+    }
+
+    .mobile-menu-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .mobile-menu-btn:focus-visible,
+    .mobile-drawer-close:focus-visible {
+      outline: 2px solid var(--accent-tech);
+      outline-offset: 2px;
+    }
+
+    .mobile-drawer-backdrop,
+    .mobile-source-drawer {
+      display: none;
+    }
+
+    .mobile-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 24, 34, 0.32);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 40;
+    }
+
+    .mobile-drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-source-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: min(84vw, 320px);
+      background: rgba(255, 255, 255, 0.93);
+      border-right: 1px solid var(--glass-border);
+      box-shadow: 8px 0 28px rgba(15, 23, 42, 0.15);
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 41;
+      padding: 14px 12px 18px;
+      padding-left: calc(12px + env(safe-area-inset-left));
+      padding-right: calc(12px + env(safe-area-inset-right));
+      overflow-y: auto;
+    }
+
+    .mobile-source-drawer.open {
+      transform: translateX(0);
+    }
+
+    .mobile-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding: 2px 4px 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .mobile-drawer-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.1px;
+    }
+
+    .mobile-drawer-close {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text-secondary);
+      font-size: 17px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .mobile-source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 6px 2px 20px;
+    }
+
+    .mobile-source-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 13px;
+      min-width: 0;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .mobile-source-link:hover {
+      background: rgba(0, 0, 0, 0.03);
+      color: var(--text-primary);
+    }
+
+    body.mobile-menu-open {
+      overflow: hidden;
+    }
+
     .mobile-category-wrap {
       display: none;
       margin-bottom: 16px;
@@ -473,6 +605,10 @@
         overflow-x: hidden;
       }
 
+      .mobile-toolbar {
+        display: flex;
+      }
+
       .news-grid,
       .ranking-grid,
       .sns-grid {
@@ -491,6 +627,14 @@
       }
 
       .mobile-category-wrap {
+        display: block;
+      }
+
+      .mobile-drawer-backdrop {
+        display: block;
+      }
+
+      .mobile-source-drawer {
         display: block;
       }
     }
@@ -575,6 +719,7 @@
         gap: 0;
         padding-inline: 0;
         scroll-padding-inline: 0;
+        transition: height 0.22s ease;
       }
 
       .swipe-container::-webkit-scrollbar {
@@ -879,6 +1024,30 @@
 
     <!-- MAIN -->
     <main class="main">
+      <div class="mobile-toolbar">
+        <button
+          type="button"
+          class="mobile-menu-btn"
+          id="mobile-menu-btn"
+          aria-label="ソース一覧を開く"
+          aria-controls="mobile-source-drawer"
+          aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="mobile-drawer-backdrop" id="mobile-drawer-backdrop" aria-hidden="true"></div>
+      <aside class="mobile-source-drawer" id="mobile-source-drawer" aria-hidden="true">
+        <div class="mobile-drawer-header">
+          <div class="mobile-drawer-title">ソース一覧</div>
+          <button type="button" class="mobile-drawer-close" id="mobile-menu-close" aria-label="ソース一覧を閉じる">×</button>
+        </div>
+        <nav class="mobile-source-list" id="mobile-source-list" aria-label="Source links"></nav>
+      </aside>
+
       <!-- Main Tabs -->
       <div class="main-tabs" role="tablist" aria-label="Main content tabs">
         <button type="button" id="tab-btn-news" class="main-tab active" data-tab="news" role="tab" aria-selected="true"
@@ -3416,8 +3585,10 @@
       var SWIPE_HINT_KEY = 'newsflow-swipe-hint-seen-v1';
       var categoryFilters = document.querySelectorAll('.category-filter[data-category]');
       var sidebarCategoryFilters = document.querySelectorAll('.sidebar-category-filter[data-category]');
+      var sidebarSourceLinks = document.querySelectorAll('.sidebar .source-list-link');
       var categoryLabels = document.querySelectorAll('[data-role="category-label"]');
       var mobileCategoryWrap = document.querySelector('[data-role="mobile-category-wrap"]');
+      var mobileSourceList = document.getElementById('mobile-source-list');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
       var tabNames = ['news', 'ranking', 'sns'];
@@ -3425,10 +3596,41 @@
       var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
       var swipeHint = document.getElementById('swipe-hint');
       var swipeContainer = document.getElementById('swipe-container');
+      var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      var mobileMenuCloseBtn = document.getElementById('mobile-menu-close');
+      var mobileSourceDrawer = document.getElementById('mobile-source-drawer');
+      var mobileDrawerBackdrop = document.getElementById('mobile-drawer-backdrop');
       var mobileQuery = window.matchMedia('(max-width: 768px)');
 
       function isMobileView() {
         return mobileQuery.matches;
+      }
+
+      function populateMobileSourceLinks() {
+        if (!mobileSourceList || mobileSourceList.children.length > 0) {
+          return;
+        }
+
+        sidebarSourceLinks.forEach(function (link) {
+          var clone = link.cloneNode(true);
+          clone.classList.remove('nav-item');
+          clone.classList.add('mobile-source-link');
+          clone.removeAttribute('style');
+          mobileSourceList.appendChild(clone);
+        });
+      }
+
+      function setMobileMenuOpen(open) {
+        if (!mobileSourceDrawer || !mobileDrawerBackdrop || !mobileMenuBtn) {
+          return;
+        }
+        var shouldOpen = Boolean(open) && isMobileView();
+        mobileSourceDrawer.classList.toggle('open', shouldOpen);
+        mobileDrawerBackdrop.classList.toggle('open', shouldOpen);
+        mobileSourceDrawer.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        mobileDrawerBackdrop.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+        mobileMenuBtn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        document.body.classList.toggle('mobile-menu-open', shouldOpen);
       }
 
       function loadState() {
@@ -3475,6 +3677,7 @@
         });
         state.category = category;
         saveState(state);
+        requestSyncSwipeContainerHeight(state.tab);
       }
 
       function scrollToTab(target, behavior) {
@@ -3514,6 +3717,7 @@
         }
 
         updateIndicator(target);
+        requestSyncSwipeContainerHeight(target);
       }
 
       function showTab(target, state) {
@@ -3602,6 +3806,32 @@
         return tabNames.indexOf(target) !== -1 ? target : tabNames[0];
       }
 
+      function syncSwipeContainerHeight(targetTab) {
+        if (!swipeContainer) {
+          return;
+        }
+        if (!isMobileView()) {
+          swipeContainer.style.height = '';
+          return;
+        }
+
+        var activeTab = targetTab || tabNames[0];
+        var activeSlide = document.getElementById('tab-' + activeTab);
+        if (!activeSlide) {
+          return;
+        }
+        var nextHeight = activeSlide.offsetHeight;
+        if (nextHeight > 0) {
+          swipeContainer.style.height = nextHeight + 'px';
+        }
+      }
+
+      function requestSyncSwipeContainerHeight(targetTab) {
+        window.requestAnimationFrame(function () {
+          syncSwipeContainerHeight(targetTab);
+        });
+      }
+
       function updateIndicatorProgress(progressIndex) {
         indicatorDots.forEach(function (dot, index) {
           var distance = Math.abs(index - progressIndex);
@@ -3650,6 +3880,8 @@
         state.category = 'all';
       }
 
+      populateMobileSourceLinks();
+
       if (swipeContainer) {
         swipeContainer.addEventListener('scroll', function () {
           if (!isMobileView()) {
@@ -3659,6 +3891,7 @@
           var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
           updateIndicatorProgress(clamped);
           var target = getNearestTabByScrollPosition();
+          requestSyncSwipeContainerHeight(target || state.tab);
           if (target && state.tab !== target) {
             state.tab = target;
             saveState(state);
@@ -3666,6 +3899,39 @@
           }
         }, { passive: true });
       }
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function () {
+          var isOpen = mobileSourceDrawer && mobileSourceDrawer.classList.contains('open');
+          setMobileMenuOpen(!isOpen);
+        });
+      }
+
+      if (mobileMenuCloseBtn) {
+        mobileMenuCloseBtn.addEventListener('click', function () {
+          setMobileMenuOpen(false);
+        });
+      }
+
+      if (mobileDrawerBackdrop) {
+        mobileDrawerBackdrop.addEventListener('click', function () {
+          setMobileMenuOpen(false);
+        });
+      }
+
+      if (mobileSourceList) {
+        mobileSourceList.addEventListener('click', function (event) {
+          if (event.target.closest('a')) {
+            setMobileMenuOpen(false);
+          }
+        });
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          setMobileMenuOpen(false);
+        }
+      });
 
       categoryFilters.forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -3690,11 +3956,13 @@
         } else {
           updateIndicator(state.tab);
         }
+        requestSyncSwipeContainerHeight(state.tab);
         maybeShowSwipeHint();
       }, 100);
 
       if (mobileQuery.addEventListener) {
         mobileQuery.addEventListener('change', function () {
+          setMobileMenuOpen(false);
           updateUIForTab(state.tab);
           if (isMobileView()) {
             scrollToTab(state.tab, 'auto');
@@ -3703,8 +3971,13 @@
           } else {
             updateIndicator(state.tab);
           }
+          requestSyncSwipeContainerHeight(state.tab);
         });
       }
+
+      window.addEventListener('resize', function () {
+        requestSyncSwipeContainerHeight(state.tab);
+      });
 
       // (Replaces previous touch event listeners)
     })();

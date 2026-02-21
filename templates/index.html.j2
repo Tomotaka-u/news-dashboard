@@ -60,6 +60,30 @@
 
     <!-- MAIN -->
     <main class="main">
+      <div class="mobile-toolbar">
+        <button
+          type="button"
+          class="mobile-menu-btn"
+          id="mobile-menu-btn"
+          aria-label="ソース一覧を開く"
+          aria-controls="mobile-source-drawer"
+          aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="mobile-drawer-backdrop" id="mobile-drawer-backdrop" aria-hidden="true"></div>
+      <aside class="mobile-source-drawer" id="mobile-source-drawer" aria-hidden="true">
+        <div class="mobile-drawer-header">
+          <div class="mobile-drawer-title">ソース一覧</div>
+          <button type="button" class="mobile-drawer-close" id="mobile-menu-close" aria-label="ソース一覧を閉じる">×</button>
+        </div>
+        <nav class="mobile-source-list" id="mobile-source-list" aria-label="Source links"></nav>
+      </aside>
+
       <!-- Main Tabs -->
       <div class="main-tabs" role="tablist" aria-label="Main content tabs">
         <button type="button" id="tab-btn-news" class="main-tab active" data-tab="news" role="tab" aria-selected="true"
