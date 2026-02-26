@@ -22,6 +22,7 @@
       var mobileSourceDrawer = document.getElementById('mobile-source-drawer');
       var mobileDrawerBackdrop = document.getElementById('mobile-drawer-backdrop');
       var mobileQuery = window.matchMedia('(max-width: 768px)');
+      var swipeScrollTimer = null;
 
       function isMobileView() {
         return mobileQuery.matches;
@@ -141,11 +142,17 @@
         requestSyncSwipeContainerHeight(target);
       }
 
+      function scrollToTopIfNeeded() {
+        if (!isMobileView()) return;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
       function showTab(target, state) {
         updateUIForTab(target);
         scrollToTab(target, 'smooth');
         state.tab = target;
         saveState(state);
+        scrollToTopIfNeeded();
       }
 
       function updateIndicator(target) {
@@ -317,6 +324,10 @@
             state.tab = target;
             saveState(state);
             updateUIForTab(target);
+            clearTimeout(swipeScrollTimer);
+            swipeScrollTimer = setTimeout(function () {
+              scrollToTopIfNeeded();
+            }, 200);
           }
         }, { passive: true });
       }
