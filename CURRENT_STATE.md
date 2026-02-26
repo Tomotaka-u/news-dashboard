@@ -192,6 +192,7 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
 - localStorage状態保存（`newsflow-ui-state-v1`）
 - スワイプヒント（初回のみ表示、`newsflow-swipe-hint-seen-v1`）
 - タブ切り替え時に `window.scrollTo({ top: 0 })` でページトップへ戻す（タブごとのコンテンツ長の差でスクロール位置が残る問題の対策）
+- `.swipe-container` に `align-items: flex-start`（モバイルのみ）。デフォルトの stretch では全スライドが最長スライド高さに引き伸ばされ、短いタブでも余分なスクロール領域が生じるため
 
 ---
 

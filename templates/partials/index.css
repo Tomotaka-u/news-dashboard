@@ -697,6 +697,7 @@
     @media (max-width: 768px) {
       .swipe-container {
         display: flex;
+        align-items: flex-start;
         width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
