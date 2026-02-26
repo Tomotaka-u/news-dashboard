@@ -697,6 +697,7 @@
     @media (max-width: 768px) {
       .swipe-container {
         display: flex;
+        /* Keep each tab at its own height; avoid stretch-to-tallest slide. */
         align-items: flex-start;
         width: 100%;
         overflow-x: auto;

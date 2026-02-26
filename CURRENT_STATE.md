@@ -194,6 +194,13 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
 - タブ切り替え時に `window.scrollTo({ top: 0 })` でページトップへ戻す（タブごとのコンテンツ長の差でスクロール位置が残る問題の対策）
 - `.swipe-container` に `align-items: flex-start`（モバイルのみ）。デフォルトの stretch では全スライドが最長スライド高さに引き伸ばされ、短いタブでも余分なスクロール領域が生じるため
 
+### モバイルSNSタブの空白スクロール防止仕様（2026-02-26）
+- 対象: `@media (max-width: 768px)` の `.swipe-container`
+- 必須指定: `align-items: flex-start`
+- 理由: `display:flex` のデフォルト（`stretch`）だと、短いタブでも最長タブ高に引き伸ばされるため
+- 症状: SNSタブで下方向に不要な空白領域までスクロールできる
+- 運用メモ: 生成元 `templates/partials/index.css` と生成物 `docs/index.html` の両方でこの指定が欠けないこと
+
 ---
 
 ## デザイン
