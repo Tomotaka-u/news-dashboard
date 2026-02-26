@@ -22,7 +22,9 @@
       var mobileSourceDrawer = document.getElementById('mobile-source-drawer');
       var mobileDrawerBackdrop = document.getElementById('mobile-drawer-backdrop');
       var mobileQuery = window.matchMedia('(max-width: 768px)');
-      var swipeScrollTimer = null;
+      var swipeSettleTimer = null;
+      var SWIPE_SETTLE_DELAY_MS = 120;
+      var SWIPE_ALIGN_EPSILON_PX = 1;
 
       function isMobileView() {
         return mobileQuery.matches;
@@ -234,6 +236,17 @@
         return tabNames.indexOf(target) !== -1 ? target : tabNames[0];
       }
 
+      function getTabOffsetLeft(targetTab) {
+        if (!swipeContainer) {
+          return null;
+        }
+        var targetSlide = document.getElementById('tab-' + targetTab);
+        if (!targetSlide) {
+          return null;
+        }
+        return targetSlide.offsetLeft;
+      }
+
       function syncSwipeContainerHeight(targetTab) {
         if (!swipeContainer) {
           return;
@@ -258,6 +271,26 @@
         window.requestAnimationFrame(function () {
           syncSwipeContainerHeight(targetTab);
         });
+      }
+
+      function finalizeSwipePosition() {
+        if (!isMobileView() || !swipeContainer) {
+          return;
+        }
+        var target = getNearestTabByScrollPosition();
+        var targetLeft = getTabOffsetLeft(target);
+        if (targetLeft !== null) {
+          var delta = Math.abs(swipeContainer.scrollLeft - targetLeft);
+          if (delta > SWIPE_ALIGN_EPSILON_PX) {
+            swipeContainer.scrollTo({ left: targetLeft, behavior: 'auto' });
+          }
+        }
+        if (target && state.tab !== target) {
+          state.tab = target;
+          saveState(state);
+        }
+        updateUIForTab(target || state.tab);
+        requestSyncSwipeContainerHeight(target || state.tab);
       }
 
       function updateIndicatorProgress(progressIndex) {
@@ -318,17 +351,10 @@
           var progressIndex = getProgressFromScrollLeft();
           var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
           updateIndicatorProgress(clamped);
-          var target = getNearestTabByScrollPosition();
-          requestSyncSwipeContainerHeight(target || state.tab);
-          if (target && state.tab !== target) {
-            state.tab = target;
-            saveState(state);
-            updateUIForTab(target);
-            clearTimeout(swipeScrollTimer);
-            swipeScrollTimer = setTimeout(function () {
-              scrollToTopIfNeeded();
-            }, 200);
-          }
+          clearTimeout(swipeSettleTimer);
+          swipeSettleTimer = setTimeout(function () {
+            finalizeSwipePosition();
+          }, SWIPE_SETTLE_DELAY_MS);
         }, { passive: true });
       }
 

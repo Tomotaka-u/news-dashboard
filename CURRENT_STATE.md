@@ -193,6 +193,7 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
 - スワイプヒント（初回のみ表示、`newsflow-swipe-hint-seen-v1`）
 - タブ切り替え時に `window.scrollTo({ top: 0 })` でページトップへ戻す（タブごとのコンテンツ長の差でスクロール位置が残る問題の対策）
 - `.swipe-container` に `align-items: flex-start`（モバイルのみ）。デフォルトの stretch では全スライドが最長スライド高さに引き伸ばされ、短いタブでも余分なスクロール領域が生じるため
+- モバイルスワイプは「スクロール中はインジケータ更新のみ」。タブ確定・高さ同期はスクロール停止後（約120ms）に実行し、最寄りスライドへ `left` を明示補正する（iPhone Safariの慣性で止まり位置がぶれる問題の対策）
 
 ### モバイルSNSタブの空白スクロール防止仕様（2026-02-26）
 - 対象: `@media (max-width: 768px)` の `.swipe-container`
@@ -200,6 +201,17 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
 - 理由: `display:flex` のデフォルト（`stretch`）だと、短いタブでも最長タブ高に引き伸ばされるため
 - 症状: SNSタブで下方向に不要な空白領域までスクロールできる
 - 運用メモ: 生成元 `templates/partials/index.css` と生成物 `docs/index.html` の両方でこの指定が欠けないこと
+
+### モバイル横スワイプ停止安定化仕様（2026-02-27）
+- 対象: iPhone Safari を含むモバイル環境の `.swipe-container`
+- 挙動:
+  - `scroll` イベント中はタブUIを確定しない（途中でカテゴリUIを切り替えない）
+  - 最終スクロール入力から約120ms後に最寄りタブを確定
+  - `scrollLeft` がタブ先頭から1px超ズレていれば `behavior: auto` で補正
+  - 高さ同期（`swipe-container.style.height`）はこの確定タイミングで実行
+- 禁止事項:
+  - スクロール中に連続で高さ同期を走らせること
+  - スワイプ中の確定処理で `window.scrollTo({ top: 0 })` を発火すること
 
 ---
 
