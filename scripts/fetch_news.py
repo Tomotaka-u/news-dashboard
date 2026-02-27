@@ -7,7 +7,7 @@ import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import feedparser
 import requests
@@ -127,17 +127,30 @@ def extract_techcrunch_ranking(soup, ranking_url):
 def extract_gizmodo_ranking(soup, ranking_url):
     items = []
     seen = set()
-    ranking_heading = soup.find("h2", class_="s-Ranking_Heading")
-    if ranking_heading:
-        container = ranking_heading.find_parent("div") or ranking_heading.find_parent("section")
-        if container:
-            for a_tag in container.find_all("a", href=True):
-                link = to_absolute_url(ranking_url, a_tag.get("href"))
-                if "gizmodo.jp" not in link:
-                    continue
-                append_ranking_item(items, seen, a_tag.get_text(strip=True), link, ranking_url, 10)
-                if len(items) >= MAX_RANKING_ITEMS:
-                    break
+    ranking_heading = None
+    for heading in soup.find_all(["h2", "h3", "h4"]):
+        heading_text = sanitize_text(heading.get_text(" ", strip=True)).upper()
+        if heading_text == "RANKING":
+            ranking_heading = heading
+            break
+
+    # Fallback to legacy class name if exact heading text is not available.
+    if ranking_heading is None:
+        ranking_heading = soup.find("h2", class_="s-Ranking_Heading")
+
+    if ranking_heading is None:
+        return items
+
+    # On GIZMODO's ranking module, "Daily" appears first in DOM order.
+    for a_tag in ranking_heading.find_all_next("a", href=True):
+        link = to_absolute_url(ranking_url, a_tag.get("href"))
+        if "gizmodo.jp" not in link:
+            continue
+        if not re.search(r"/\d{4}/\d{2}/", urlparse(link).path or ""):
+            continue
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), link, ranking_url, 10)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
     return items
 
 
@@ -230,21 +243,29 @@ def extract_jdn_ranking(soup, ranking_url):
     seen = set()
     ranking_heading = None
     for heading in soup.find_all(["h2", "h3", "h4"]):
-        if "ランキング" in heading.get_text():
+        heading_text = sanitize_text(heading.get_text(" ", strip=True))
+        if "ピックアップ" in heading_text or "PICK UP" in heading_text.upper():
             ranking_heading = heading
             break
 
     if ranking_heading:
-        parent = ranking_heading.find_parent("section") or ranking_heading.find_parent("div")
-        if parent:
-            for a_tag in parent.find_all("a", href=True):
-                href = to_absolute_url(ranking_url, a_tag.get("href"))
-                if "japandesign.ne.jp" not in href or "/ranking/" in href:
-                    continue
-                title = re.sub(r"^\d+", "", a_tag.get_text(strip=True)).strip()
-                append_ranking_item(items, seen, title, href, ranking_url, 5)
-                if len(items) >= MAX_RANKING_ITEMS:
-                    break
+        for a_tag in ranking_heading.find_all_next("a", href=True):
+            href = to_absolute_url(ranking_url, a_tag.get("href"))
+            if "japandesign.ne.jp" not in href:
+                continue
+            parsed = urlparse(href)
+            path = (parsed.path or "").rstrip("/")
+            if not path:
+                continue
+            if path == "/pickup" or path.startswith("/pickup/page"):
+                continue
+            # Skip section top links and keep article/detail pages.
+            if path.count("/") < 2:
+                continue
+            title = re.sub(r"^\d+", "", a_tag.get_text(strip=True)).strip()
+            append_ranking_item(items, seen, title, href, ranking_url, 5)
+            if len(items) >= MAX_RANKING_ITEMS:
+                break
     return items
 
 

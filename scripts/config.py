@@ -103,7 +103,7 @@ SITES = [
         "site_url": "https://www.japandesign.ne.jp",
         "icon_gradient": "linear-gradient(135deg, #2563eb, #60a5fa)",
         "accent_color": "#2563eb",
-        "ranking_url": "https://www.japandesign.ne.jp/ranking/",
+        "ranking_url": "https://www.japandesign.ne.jp/pickup/",
         "ranking_type": "jdn",
     },
 

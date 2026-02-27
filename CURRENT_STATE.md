@@ -99,6 +99,22 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 
 サイト固有パーサーが0件だった場合は `extract_generic_ranking` にフォールバック。
 
+### ランキング参照先 調査メモ（2026-02-27）
+
+| サイト | 現在の `ranking_url` | 現在の抽出基準 | 観測結果（`docs/index.html`） | 判定 |
+|--------|----------------------|----------------|-------------------------------|------|
+| JDN | `https://www.japandesign.ne.jp/pickup/` | 「ピックアップ」見出し以降の `japandesign.ne.jp` 記事リンク（`/pickup` 自身とページネーションを除外） | ピックアップ基準に切替済み（実装更新） | 運用中 |
+| GIZMODO JAPAN | `https://www.gizmodo.jp/` | `RANKING` 見出し以降の `gizmodo.jp` 日付付き記事URL（Daily先頭を採用） | 総合ランキングDaily基準へ寄せる実装に更新 | 運用中 |
+
+メモ:
+- JDN は「ランキング」基準から「ピックアップ」基準へ変更済み。
+- GIZMODO は専用ランキングURLではなく、トップページ `RANKING` モジュールの Daily を優先取得する方針。
+
+#### 参照先 方針確定（2026-02-27）
+- JDN: ランキングではなく「ピックアップ」を基準にする
+- GIZMODO JAPAN: 「総合ランキング」のデイリー（当日ランキング）を基準にする
+- 実装ルール: まず参照先URLと抽出セレクタをこの方針に合わせて見直してから、`ranking_url` / 抽出ロジックを修正する
+
 ---
 
 ## 表示カテゴリ（config.py / DISPLAY_CATEGORIES）
