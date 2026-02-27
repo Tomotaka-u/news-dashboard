@@ -23,8 +23,10 @@
       var mobileDrawerBackdrop = document.getElementById('mobile-drawer-backdrop');
       var mobileQuery = window.matchMedia('(max-width: 768px)');
       var swipeSettleTimer = null;
-      var SWIPE_SETTLE_DELAY_MS = 120;
+      var SWIPE_SETTLE_DELAY_MS = 160;
       var SWIPE_ALIGN_EPSILON_PX = 1;
+      var swipeGestureActive = false;
+      var swipeGestureStartIndex = 0;
 
       function isMobileView() {
         return mobileQuery.matches;
@@ -247,6 +249,17 @@
         return targetSlide.offsetLeft;
       }
 
+      function clampSwipeTargetToSingleStep(targetTab) {
+        var targetIndex = tabNames.indexOf(targetTab);
+        if (targetIndex === -1 || !swipeGestureActive) {
+          return targetTab;
+        }
+        var minIndex = Math.max(0, swipeGestureStartIndex - 1);
+        var maxIndex = Math.min(tabNames.length - 1, swipeGestureStartIndex + 1);
+        var clampedIndex = Math.max(minIndex, Math.min(maxIndex, targetIndex));
+        return tabNames[clampedIndex];
+      }
+
       function syncSwipeContainerHeight(targetTab) {
         if (!swipeContainer) {
           return;
@@ -278,6 +291,7 @@
           return;
         }
         var target = getNearestTabByScrollPosition();
+        target = clampSwipeTargetToSingleStep(target);
         var targetLeft = getTabOffsetLeft(target);
         if (targetLeft !== null) {
           var delta = Math.abs(swipeContainer.scrollLeft - targetLeft);
@@ -291,6 +305,7 @@
         }
         updateUIForTab(target || state.tab);
         requestSyncSwipeContainerHeight(target || state.tab);
+        swipeGestureActive = false;
       }
 
       function updateIndicatorProgress(progressIndex) {
@@ -344,9 +359,22 @@
       populateMobileSourceLinks();
 
       if (swipeContainer) {
+        swipeContainer.addEventListener('touchstart', function () {
+          if (!isMobileView()) {
+            return;
+          }
+          swipeGestureActive = true;
+          swipeGestureStartIndex = tabIndexOrZero(state.tab);
+          clearTimeout(swipeSettleTimer);
+        }, { passive: true });
+
         swipeContainer.addEventListener('scroll', function () {
           if (!isMobileView()) {
             return;
+          }
+          if (!swipeGestureActive) {
+            swipeGestureActive = true;
+            swipeGestureStartIndex = tabIndexOrZero(state.tab);
           }
           var progressIndex = getProgressFromScrollLeft();
           var clamped = Math.max(0, Math.min(tabNames.length - 1, progressIndex));
