@@ -12,7 +12,7 @@
       var mobileSourceList = document.getElementById('mobile-source-list');
       var sections = document.querySelectorAll('.category-section');
       var tabs = document.querySelectorAll('.main-tab');
-      var tabNames = ['news', 'ranking', 'sns'];
+      var tabNames = ['news', 'ranking', 'sns', 'bookmarks'];
       var tabContents = document.querySelectorAll('.tab-content');
       var indicatorDots = document.querySelectorAll('.tab-indicator-dot');
       var swipeHint = document.getElementById('swipe-hint');
@@ -66,7 +66,7 @@
           if (!raw) return fallback;
           var parsed = JSON.parse(raw);
           return {
-            tab: ['news', 'ranking', 'sns'].indexOf(parsed.tab) !== -1 ? parsed.tab : 'news',
+            tab: tabNames.indexOf(parsed.tab) !== -1 ? parsed.tab : 'news',
             category: typeof parsed.category === 'string' ? parsed.category : 'all',
           };
         } catch (e) {

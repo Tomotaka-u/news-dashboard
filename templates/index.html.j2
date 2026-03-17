@@ -92,12 +92,15 @@
           aria-controls="tab-ranking">Rankings</button>
         <button type="button" id="tab-btn-sns" class="main-tab" data-tab="sns" role="tab" aria-selected="false"
           aria-controls="tab-sns">SNS</button>
+        <button type="button" id="tab-btn-bookmarks" class="main-tab" data-tab="bookmarks" role="tab" aria-selected="false"
+          aria-controls="tab-bookmarks">Bookmarks</button>
       </div>
 
       <div class="tab-indicator" id="tab-indicator">
         <span class="tab-indicator-dot active" data-tab="news"></span>
         <span class="tab-indicator-dot" data-tab="ranking"></span>
         <span class="tab-indicator-dot" data-tab="sns"></span>
+        <span class="tab-indicator-dot" data-tab="bookmarks"></span>
       </div>
       <div class="swipe-hint hidden" id="swipe-hint" aria-hidden="true">← スワイプで切り替え →</div>
 
@@ -252,6 +255,24 @@
           No SNS data available
         </div>
         {%- endif %}
+      </div>
+
+      <!-- Bookmarks Tab Content -->
+      <div class="swipe-slide tab-content" id="tab-bookmarks" role="tabpanel" aria-labelledby="tab-btn-bookmarks">
+        <div class="section-header">
+          <div class="section-accent" style="background: #8b5cf6;"></div>
+          <div class="section-title">Bookmarks</div>
+          <div class="section-count">{{ bookmarks | length }} sites</div>
+        </div>
+        <div class="bookmark-grid">
+          {%- for bm in bookmarks %}
+          <a href="{{ bm.url }}" target="_blank" rel="noopener" class="bookmark-card">
+            <div class="card-accent-stripe" style="background: {{ bm.accent_color }};"></div>
+            <div class="source-icon" style="background: {{ bm.icon_gradient }};">{{ bm.icon }}</div>
+            <div class="bookmark-name">{{ bm.name }}</div>
+          </a>
+          {%- endfor %}
+        </div>
       </div>
       </div> <!-- End swipe-container -->
 

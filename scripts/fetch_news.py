@@ -18,7 +18,7 @@ from urllib3.util import Retry
 
 # Add scripts directory to path so config can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import CATEGORIES, DISPLAY_CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
+from config import BOOKMARKS, CATEGORIES, DISPLAY_CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
 
 JST = timezone(timedelta(hours=9))
 USER_AGENT = "NewsDashboard/1.0 (+https://github.com/Tomotaka-u/news-dashboard)"
@@ -770,6 +770,7 @@ def main():
             ranking_data=ranking_data,
             ranking_status=ranking_status,
             sns_data=sns_data,
+            bookmarks=BOOKMARKS,
             updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
         )
 

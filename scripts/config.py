@@ -206,6 +206,52 @@ DISPLAY_CATEGORIES = [
 MAX_ITEMS_PER_SITE = 8
 MAX_RANKING_ITEMS = 5
 
+# Bookmarks – static links for manual exploration (no daily fetching)
+BOOKMARKS = [
+    {
+        "name": "EdSurge",
+        "url": "https://www.edsurge.com/",
+        "icon": "ES",
+        "icon_gradient": "linear-gradient(135deg, #1a73e8, #4dabf5)",
+        "accent_color": "#1a73e8",
+    },
+    {
+        "name": "Product Hunt",
+        "url": "https://www.producthunt.com/",
+        "icon": "PH",
+        "icon_gradient": "linear-gradient(135deg, #da552f, #f56040)",
+        "accent_color": "#da552f",
+    },
+    {
+        "name": "教育新聞",
+        "url": "https://www.kyobun.co.jp/",
+        "icon": "教",
+        "icon_gradient": "linear-gradient(135deg, #2e7d32, #4caf50)",
+        "accent_color": "#2e7d32",
+    },
+    {
+        "name": "ICT教育ニュース",
+        "url": "https://ict-enews.net/",
+        "icon": "IC",
+        "icon_gradient": "linear-gradient(135deg, #0288d1, #03a9f4)",
+        "accent_color": "#0288d1",
+    },
+    {
+        "name": "THE BRIDGE",
+        "url": "https://thebridge.jp/",
+        "icon": "TB",
+        "icon_gradient": "linear-gradient(135deg, #263238, #546e7a)",
+        "accent_color": "#263238",
+    },
+    {
+        "name": "GIGAZINE",
+        "url": "https://gigazine.net/",
+        "icon": "GG",
+        "icon_gradient": "linear-gradient(135deg, #e65100, #ff9800)",
+        "accent_color": "#e65100",
+    },
+]
+
 # SNS (X/Twitter) categories fetched via xAI Grok API
 SNS_CATEGORIES = [
     {
