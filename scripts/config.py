@@ -250,6 +250,13 @@ BOOKMARKS = [
         "icon_gradient": "linear-gradient(135deg, #e65100, #ff9800)",
         "accent_color": "#e65100",
     },
+    {
+        "name": "Works in Progress",
+        "url": "https://worksinprogress.co/",
+        "icon": "WP",
+        "icon_gradient": "linear-gradient(135deg, #1f4e79, #5b8fb9)",
+        "accent_color": "#1f4e79",
+    },
 ]
 
 # SNS (X/Twitter) categories fetched via xAI Grok API
