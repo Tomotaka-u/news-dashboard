@@ -223,6 +223,13 @@ BOOKMARKS = [
         "accent_color": "#da552f",
     },
     {
+        "name": "Every",
+        "url": "https://every.to/",
+        "icon": "EV",
+        "icon_gradient": "linear-gradient(135deg, #111827, #f59e0b)",
+        "accent_color": "#111827",
+    },
+    {
         "name": "教育新聞",
         "url": "https://www.kyobun.co.jp/",
         "icon": "教",
