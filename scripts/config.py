@@ -93,8 +93,6 @@ SITES = [
         "site_url": "https://www.wwdjapan.com",
         "icon_gradient": "linear-gradient(135deg, #1a1a1a, #444)",
         "accent_color": "#1a1a1a",
-        "ranking_url": "https://www.wwdjapan.com/ranking",
-        "ranking_type": "wwdjapan",
     },
     {
         "name": "JDN", "url": "https://www.japandesign.ne.jp/feed/",
@@ -103,8 +101,6 @@ SITES = [
         "site_url": "https://www.japandesign.ne.jp",
         "icon_gradient": "linear-gradient(135deg, #2563eb, #60a5fa)",
         "accent_color": "#2563eb",
-        "ranking_url": "https://www.japandesign.ne.jp/pickup/",
-        "ranking_type": "jdn",
     },
 
     # 経済・ビジネス系
@@ -205,6 +201,8 @@ DISPLAY_CATEGORIES = [
 
 MAX_ITEMS_PER_SITE = 8
 MAX_RANKING_ITEMS = 5
+MIN_TOTAL_ITEMS = 20
+DEFAULT_XAI_MODEL = "grok-4-1-fast-reasoning"
 
 # Bookmarks – static links for manual exploration (no daily fetching)
 BOOKMARKS = [

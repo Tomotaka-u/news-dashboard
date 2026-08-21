@@ -49,12 +49,17 @@
       <a href="{{ site.site_url }}" target="_blank" rel="noopener" class="nav-item source-list-link" style="font-size:12px">
         <span class="dot" style="background:{{ site.accent_color }};width:6px;height:6px"></span>
         {{ site.name }}
+        {%- set feed_status = feed_status_by_name.get(site.name) %}
+        {%- if feed_status and feed_status.status != "ok" %}
+        <span class="source-status-failed" title="{{ feed_status.detail }}">取得失敗</span>
+        {%- endif %}
       </a>
       {% endfor %}
 
       <div class="sidebar-footer">
         Daily News Dashboard<br>
-        Powered by RSS + xAI + GitHub Actions
+        Powered by RSS + xAI + GitHub Actions<br>
+        <a href="status.json">status.json</a>
       </div>
     </aside>
 
@@ -169,6 +174,9 @@
             {%- if ranking_status.failed_sources > 0 %} · {{ ranking_status.failed_sources }} failed{%- endif %}
           </div>
         </div>
+        {%- if ranking_status.failed_names %}
+        <div class="ranking-failures">失敗: {{ ranking_status.failed_names | join(", ") }}</div>
+        {%- endif %}
         {%- if ranking_data %}
         <div class="ranking-grid">
           {%- for rsite in ranking_data %}
@@ -197,6 +205,9 @@
         <div class="ranking-empty">
           No ranking data available<br>
           <small>Last checked: {{ ranking_status.updated_at }}{% if ranking_status.failed_sources > 0 %} · {{ ranking_status.failed_sources }} sources failed{% endif %}</small>
+          {%- if ranking_status.failed_names %}
+          <br><small>失敗: {{ ranking_status.failed_names | join(", ") }}</small>
+          {%- endif %}
         </div>
         {%- endif %}
       </div>

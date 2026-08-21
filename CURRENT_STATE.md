@@ -18,14 +18,17 @@ news-dashboard/
 ├── scripts/
 │   ├── config.py           # サイト設定・カテゴリ定義・SNSカテゴリ定義
 │   ├── fetch_news.py       # メイン処理（RSS取得・スクレイピング・SNS取得・HTML生成）
-│   └── requirements.txt
+│   ├── requirements.txt
+│   ├── requirements-dev.txt
+│   └── tests/              # ネットワーク不要の pytest・抽出フィクスチャ
 ├── templates/
 │   ├── index.html.j2       # メインテンプレート
 │   └── partials/
 │       ├── index.css       # スタイル
 │       └── index.js        # クライアントサイドJS
 ├── docs/                   # GitHub Pages 公開ディレクトリ（生成物）
-│   └── index.html
+│   ├── index.html
+│   └── status.json         # 最後に品質ゲートを通過した実行の取得状況
 └── .github/workflows/
     └── update-news.yml     # 自動更新ワークフロー
 ```
@@ -77,6 +80,8 @@ news-dashboard/
 ### 設定値
 - `MAX_ITEMS_PER_SITE = 8`（RSSフィード・スクレイピングの最大件数）
 - `MAX_RANKING_ITEMS = 5`（ランキングの最大件数）
+- `MIN_TOTAL_ITEMS = 20`（記事総数が未満なら `docs/` を更新しない品質ゲート）
+- `DEFAULT_XAI_MODEL = "grok-4-1-fast-reasoning"`（`XAI_MODEL` 未設定時）
 
 ---
 
@@ -92,36 +97,38 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 | The Verge | theverge |
 | Hacker News | hackernews |
 | FASHIONSNAP | fashionsnap |
-| WWDJAPAN | wwdjapan |
 | 日経新聞 | nikkei |
-| JDN | jdn |
 | BBC News | bbc |
 | PR TIMES | prtimes |
 | Yahoo!ニュース | yahoo_news |
 
-サイト固有パーサーが0件だった場合は `extract_generic_ranking` にフォールバック。
+汎用フォールバックは使用しない。専用パーサーが0件なら `empty` として失敗表示・記録する。未知の `ranking_type` は `parse_error`。
 
-- TechCrunch のランキングは「Top Headlines」モジュールをスクレイプしており（`extract_techcrunch_ranking`）、人気ランキングではなく最新の編集記事一覧である点に注意。
+- TechCrunch はトップページのサーバHTMLに含まれる「Most Popular」モジュールを、そのクラス境界内だけスクレイプする。
+- GIZMODO JAPAN はトップページ「Ranking」の先頭 Daily パネル内だけをスクレイプする。
+- 日経新聞は `/access/` のアクセスランキングコンテナ `.m-miM32` 内だけをスクレイプする。
 
 ### 稼働状況（2026-08-21 時点）
 
-以下は設定はあるが、2026-08-21 時点の確認で取得できていない、または取得基準に疑義があるサイト（P0 修正予定、`plans/2026-08-21-p0-ranking-reliability.md` 参照）。
+本番UAのフル実行で、整理後のランキング10ソースはすべて5件取得できた（`overall_total=128`、feed/scrape は16/17成功）。
 
-| サイト | 症状 | 原因 |
-|--------|------|------|
-| GIZMODO JAPAN | 専用パーサーが0件 | `extract_gizmodo_ranking` のURL正規表現 `/\d{4}/\d{2}/`（`fetch_news.py`）が現行のURL形式 `/article/slug/` にマッチせず、`extract_generic_ranking` フォールバックがタグ／特集ページを表示してしまう |
-| JDN | `/pickup/` が0件、かつ人気ランキングではない | 「ピックアップ」は編集ピックアップ記事であり、アクセス数ベースのランキングではない |
-| WWDJAPAN | `/ranking` が本番で0件 | 原因未特定 |
+| サイト | 結論 |
+|--------|------|
+| TechCrunch | 「Most Popular」から5件取得。旧「Top Headlines」は使用しない |
+| GIZMODO JAPAN | Daily パネルから5件取得。`/article/slug/` に対応しタグ／特集ページを除外 |
+| JDN | `/pickup/` は人気順ではないためランキング対象外 |
+| WWDJAPAN | 本番UAと Accept ヘッダでも `/ranking` が HTTP 403 のためランキング対象外。feed は取得可能 |
+| 日経新聞 | `/access/` がアクセスランキングページであることを確認し、コンテナ先頭5件を取得 |
 
 ### ランキング参照先 調査メモ（2026-02-27・履歴）
 
 | サイト | 現在の `ranking_url` | 現在の抽出基準 | 観測結果（`docs/index.html`） | 判定 |
 |--------|----------------------|----------------|-------------------------------|------|
-| JDN | `https://www.japandesign.ne.jp/pickup/` | 「ピックアップ」見出し以降の `japandesign.ne.jp` 記事リンク（`/pickup` 自身とページネーションを除外） | ピックアップ基準に切替済み（実装更新） | 運用中 |
-| GIZMODO JAPAN | `https://www.gizmodo.jp/` | `RANKING` 見出し以降の `gizmodo.jp` 日付付き記事URL（Daily先頭を採用） | 総合ランキングDaily基準へ寄せる実装に更新 | 運用中 |
+| JDN | 対象外（旧 `https://www.japandesign.ne.jp/pickup/`） | 編集ピックアップであり人気順ではない | 2026-08-21 にランキング設定を削除 | 対象外 |
+| GIZMODO JAPAN | `https://www.gizmodo.jp/` | `RANKING` コンテナの先頭 Daily パネル内 `/article/` | 本番UAで5件確認 | 運用中 |
 
 メモ:
-- JDN は「ランキング」基準から「ピックアップ」基準へ変更済み。
+- JDN は過去に「ピックアップ」基準へ変更したが、2026-08-21 に人気ランキングではないと再判定して対象外とした。
 - GIZMODO は専用ランキングURLではなく、トップページ `RANKING` モジュールの Daily を優先取得する方針。
 
 #### 参照先 方針確定（2026-02-27）
@@ -144,7 +151,7 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 ## SNSタブ（config.py / SNS_CATEGORIES）
 
 xAI Grok API (`POST https://api.x.ai/v1/responses`) + `x_search` ビルトインツールで取得。
-モデル: `grok-4-1-fast-reasoning`
+モデル: `XAI_MODEL`、未設定時は `DEFAULT_XAI_MODEL`（現在 `grok-4-1-fast-reasoning`）
 
 | key | label | badge | アクセントカラー | 言語 |
 |-----|-------|-------|------------------|------|
@@ -172,6 +179,8 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
 | 変数名 | 用途 |
 |--------|------|
 | XAI_API_KEY | xAI Grok API認証（GitHub Secretsに設定済み） |
+| XAI_MODEL | xAI モデルの上書き。未設定時は `DEFAULT_XAI_MODEL` |
+| NEWS_MIN_TOTAL_ITEMS | テスト・診断用の品質ゲート上書き。実行時に整数として読む |
 
 ---
 
@@ -189,6 +198,8 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
 
 concurrency: `update-news-dashboard`（同時実行キャンセル）
 
+品質ゲート失敗時は SNS API と `docs/` 書き込みより前に終了コード1で止まり、前回の正常版を保持する。公開 `status.json` は「最新試行」ではなく「最後にゲートを通過した成功実行」の状態を表すため、ゲート失敗自体は GitHub Actions の失敗履歴で確認する。
+
 ---
 
 ## テンプレート（templates/）
@@ -201,7 +212,9 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
   - `overall_total` - 全記事総数
   - `all_sites` - サイドバー用サイト一覧
   - `ranking_data` - ランキングデータ
-  - `ranking_status` - ランキング取得状況（total/success/failed/updated_at）
+  - `ranking_status` - ランキング取得状況（total/success/failed/failed_names/updated_at）
+  - `source_status` - `status.json` の `sources` と同一のソース別取得結果
+  - `feed_status_by_name` - feed/scrape の取得結果をサイト名で引く辞書
   - `sns_data` - SNSカテゴリ一覧（posts含む）
   - `bookmarks` - Bookmarksタブ用の静的サイト一覧（`config.py` / `BOOKMARKS`）
   - `updated_at` - 更新日時（JST）

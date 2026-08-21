@@ -18,7 +18,17 @@ from urllib3.util import Retry
 
 # Add scripts directory to path so config can be imported
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config import BOOKMARKS, CATEGORIES, DISPLAY_CATEGORIES, MAX_ITEMS_PER_SITE, MAX_RANKING_ITEMS, SITES, SNS_CATEGORIES
+from config import (
+    BOOKMARKS,
+    CATEGORIES,
+    DEFAULT_XAI_MODEL,
+    DISPLAY_CATEGORIES,
+    MAX_ITEMS_PER_SITE,
+    MAX_RANKING_ITEMS,
+    MIN_TOTAL_ITEMS,
+    SITES,
+    SNS_CATEGORIES,
+)
 
 JST = timezone(timedelta(hours=9))
 USER_AGENT = "NewsDashboard/1.0 (+https://github.com/Tomotaka-u/news-dashboard)"
@@ -27,6 +37,21 @@ RETRY_TOTAL = 3
 RETRY_BACKOFF = 0.7
 RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
 SNS_API_RETRY_TOTAL = 2
+
+
+def build_fetch_result(items=None, status="ok", detail=""):
+    """Build the common fetch result and keep diagnostic text bounded."""
+    items = items or []
+    if status == "ok" and not items:
+        status = "empty"
+        detail = detail or "0 items after filtering"
+    elif status != "ok" and items:
+        raise ValueError(f"fetch result status='{status}' cannot contain items")
+    return {
+        "items": items,
+        "status": status,
+        "detail": sanitize_text(str(detail))[:200],
+    }
 
 
 def sanitize_text(text):
@@ -85,13 +110,13 @@ def fetch_feed(session, site):
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        print(f"[FEED ERROR] {site['name']} request failed: {exc}")
-        return []
+        return build_fetch_result(status="http_error", detail=exc)
 
     try:
         feed = feedparser.parse(resp.content)
+        bozo_detail = ""
         if getattr(feed, "bozo", False):
-            print(f"[FEED WARN] {site['name']} malformed feed: {feed.bozo_exception}")
+            bozo_detail = f"bozo=1: {getattr(feed, 'bozo_exception', 'unknown parse warning')}"
 
         items = []
         base_url = site.get("site_url", site["url"])
@@ -100,27 +125,31 @@ def fetch_feed(session, site):
             link = to_absolute_url(base_url, entry.get("link", ""))
             if title and link:
                 items.append({"title": title, "link": link})
-        return items
+        if items:
+            return build_fetch_result(items=items, detail=bozo_detail)
+        detail = "0 entries after filtering"
+        if bozo_detail:
+            detail = f"{detail} ({bozo_detail})"
+        return build_fetch_result(status="empty", detail=detail)
     except Exception as exc:
-        print(f"[FEED ERROR] {site['name']} parse failed: {exc}")
-        return []
+        return build_fetch_result(status="parse_error", detail=exc)
 
 
 def extract_techcrunch_ranking(soup, ranking_url):
     items = []
     seen = set()
-    top_headlines = None
-    for el in soup.find_all(string=lambda t: t and "Top Headlines" in t):
-        top_headlines = el.find_parent()
-        break
+    container = soup.select_one(".wp-block-techcrunch-most-popular-posts")
+    if not container:
+        return items
 
-    if top_headlines:
-        container = top_headlines.find_parent("div") or top_headlines.find_parent("section")
-        if container:
-            for a_tag in container.find_all("a", class_="loop-card__title-link", href=True):
-                append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 10)
-                if len(items) >= MAX_RANKING_ITEMS:
-                    break
+    heading = container.find(["h2", "h3", "h4"])
+    if not heading or "most popular" not in heading.get_text(" ", strip=True).lower():
+        return items
+
+    for a_tag in container.select("a.loop-card__title-link[href]"):
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 10)
+        if len(items) >= MAX_RANKING_ITEMS:
+            break
     return items
 
 
@@ -141,14 +170,28 @@ def extract_gizmodo_ranking(soup, ranking_url):
     if ranking_heading is None:
         return items
 
-    # On GIZMODO's ranking module, "Daily" appears first in DOM order.
-    for a_tag in ranking_heading.find_all_next("a", href=True):
+    container = ranking_heading.find_parent(
+        "div", class_=lambda value: value and "rankingContainer" in value
+    )
+    daily_list = container.find(
+        "section", class_=lambda value: value and "rankingList" in value
+    ) if container else None
+    if daily_list is None:
+        return items
+
+    # The first list inside the ranking container is the active Daily panel.
+    for a_tag in daily_list.find_all("a", href=True):
         link = to_absolute_url(ranking_url, a_tag.get("href"))
         if "gizmodo.jp" not in link:
             continue
-        if not re.search(r"/\d{4}/\d{2}/", urlparse(link).path or ""):
+        path = urlparse(link).path or ""
+        if any(excluded in path for excluded in ("/tag/", "/issue/", "/author/")):
             continue
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), link, ranking_url, 10)
+        if not re.search(r"/(article/|\d{4}/\d{2}/)", path):
+            continue
+        title_node = a_tag.find(class_=lambda value: value and "rankingTitle" in value)
+        title = title_node.get_text(" ", strip=True) if title_node else a_tag.get_text(" ", strip=True)
+        append_ranking_item(items, seen, title, link, ranking_url, 10)
         if len(items) >= MAX_RANKING_ITEMS:
             break
     return items
@@ -212,60 +255,19 @@ def extract_fashionsnap_ranking(soup, ranking_url):
     return items
 
 
-def extract_wwdjapan_ranking(soup, ranking_url):
-    items = []
-    seen = set()
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag.get("href")
-        if "articles/" not in (href or ""):
-            continue
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
-        if len(items) >= MAX_RANKING_ITEMS:
-            break
-    return items
-
-
 def extract_nikkei_ranking(soup, ranking_url):
     items = []
     seen = set()
-    for a_tag in soup.find_all("a", href=True):
+    container = soup.select_one(".m-miM32")
+    if container is None:
+        return items
+    for a_tag in container.find_all("a", href=True):
         href = a_tag.get("href")
         if "/article/" not in (href or ""):
             continue
         append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
         if len(items) >= MAX_RANKING_ITEMS:
             break
-    return items
-
-
-def extract_jdn_ranking(soup, ranking_url):
-    items = []
-    seen = set()
-    ranking_heading = None
-    for heading in soup.find_all(["h2", "h3", "h4"]):
-        heading_text = sanitize_text(heading.get_text(" ", strip=True))
-        if "ピックアップ" in heading_text or "PICK UP" in heading_text.upper():
-            ranking_heading = heading
-            break
-
-    if ranking_heading:
-        for a_tag in ranking_heading.find_all_next("a", href=True):
-            href = to_absolute_url(ranking_url, a_tag.get("href"))
-            if "japandesign.ne.jp" not in href:
-                continue
-            parsed = urlparse(href)
-            path = (parsed.path or "").rstrip("/")
-            if not path:
-                continue
-            if path == "/pickup" or path.startswith("/pickup/page"):
-                continue
-            # Skip section top links and keep article/detail pages.
-            if path.count("/") < 2:
-                continue
-            title = re.sub(r"^\d+", "", a_tag.get_text(strip=True)).strip()
-            append_ranking_item(items, seen, title, href, ranking_url, 5)
-            if len(items) >= MAX_RANKING_ITEMS:
-                break
     return items
 
 
@@ -287,37 +289,6 @@ def extract_bbc_ranking(soup, ranking_url):
                 append_ranking_item(items, seen, title, a_tag.get("href"), ranking_url, 10)
                 if len(items) >= MAX_RANKING_ITEMS:
                     break
-    return items
-
-
-def extract_generic_ranking(soup, ranking_url):
-    """Fallback parser used when a site-specific parser yields no items."""
-    items = []
-    seen = set()
-    keyword_en = ("ranking", "most read", "most popular", "top headlines")
-    keyword_ja = ("ランキング", "人気", "アクセス")
-
-    for heading in soup.find_all(["h2", "h3", "h4"]):
-        title = heading.get_text(" ", strip=True)
-        lower = title.lower()
-        if not any(k in lower for k in keyword_en) and not any(k in title for k in keyword_ja):
-            continue
-
-        section = heading.find_parent("section") or heading.find_parent("div") or heading.parent
-        if not section:
-            continue
-
-        for a_tag in section.find_all("a", href=True):
-            append_ranking_item(
-                items,
-                seen,
-                a_tag.get_text(" ", strip=True),
-                a_tag.get("href"),
-                ranking_url,
-                min_title_length=8,
-            )
-            if len(items) >= MAX_RANKING_ITEMS:
-                return items
     return items
 
 
@@ -416,9 +387,7 @@ RANKING_EXTRACTORS = {
     "itmedia": extract_itmedia_ranking,
     "hackernews": extract_hackernews_ranking,
     "fashionsnap": extract_fashionsnap_ranking,
-    "wwdjapan": extract_wwdjapan_ranking,
     "nikkei": extract_nikkei_ranking,
-    "jdn": extract_jdn_ranking,
     "bbc": extract_bbc_ranking,
     "prtimes": extract_prtimes_ranking,
     "yahoo_news": extract_yahoo_news_ranking,
@@ -427,10 +396,14 @@ RANKING_EXTRACTORS = {
 
 def fetch_scrape_news(session, site):
     """Fetch news items from a site via HTML scraping (non-RSS)."""
-    url = site["url"]
+    url = site.get("url")
     scrape_type = site.get("scrape_type")
     if not url or not scrape_type:
-        return []
+        return build_fetch_result(status="skipped", detail="missing url or scrape_type")
+
+    extractor = SCRAPE_NEWS_EXTRACTORS.get(scrape_type)
+    if not extractor:
+        return build_fetch_result(status="parse_error", detail=f"unknown scrape_type='{scrape_type}'")
 
     try:
         resp = session.get(
@@ -440,22 +413,18 @@ def fetch_scrape_news(session, site):
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        print(f"[SCRAPE ERROR] {site['name']} request failed: {exc}")
-        return []
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    extractor = SCRAPE_NEWS_EXTRACTORS.get(scrape_type)
-    if not extractor:
-        print(f"[SCRAPE WARN] {site['name']} unknown scrape_type='{scrape_type}'")
-        return []
+        return build_fetch_result(status="http_error", detail=exc)
 
     try:
+        soup = BeautifulSoup(resp.text, "html.parser")
         items = extractor(soup, url)
     except Exception as exc:
-        print(f"[SCRAPE ERROR] {site['name']} parser '{scrape_type}' failed: {exc}")
-        items = []
+        return build_fetch_result(status="parse_error", detail=exc)
 
-    return items[:MAX_ITEMS_PER_SITE]
+    items = items[:MAX_ITEMS_PER_SITE]
+    if not items:
+        return build_fetch_result(status="empty", detail="0 items after filtering")
+    return build_fetch_result(items=items)
 
 
 def fetch_ranking(session, site):
@@ -463,7 +432,11 @@ def fetch_ranking(session, site):
     ranking_url = site.get("ranking_url")
     ranking_type = site.get("ranking_type")
     if not ranking_url or not ranking_type:
-        return []
+        return build_fetch_result(status="skipped", detail="missing ranking_url or ranking_type")
+
+    extractor = RANKING_EXTRACTORS.get(ranking_type)
+    if not extractor:
+        return build_fetch_result(status="parse_error", detail=f"unknown ranking_type='{ranking_type}'")
 
     try:
         resp = session.get(
@@ -473,41 +446,22 @@ def fetch_ranking(session, site):
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        print(f"[RANKING ERROR] {site['name']} request failed: {exc}")
-        return []
-
-    if ranking_type == "itmedia":
-        content = resp.content.decode("shift_jis", errors="replace")
-    else:
-        content = resp.text
-    soup = BeautifulSoup(content, "html.parser")
-
-    extractor = RANKING_EXTRACTORS.get(ranking_type)
-    if not extractor:
-        print(f"[RANKING WARN] {site['name']} unknown ranking_type='{ranking_type}'. Using generic parser.")
-        return extract_generic_ranking(soup, ranking_url)[:MAX_RANKING_ITEMS]
+        return build_fetch_result(status="http_error", detail=exc)
 
     try:
+        if ranking_type == "itmedia":
+            content = resp.content.decode("shift_jis", errors="replace")
+        else:
+            content = resp.text
+        soup = BeautifulSoup(content, "html.parser")
         items = extractor(soup, ranking_url)
     except Exception as exc:
-        print(f"[RANKING ERROR] {site['name']} parser '{ranking_type}' failed: {exc}")
-        items = []
+        return build_fetch_result(status="parse_error", detail=exc)
 
-    if items:
-        return items[:MAX_RANKING_ITEMS]
-
-    fallback_items = extract_generic_ranking(soup, ranking_url)
-    if fallback_items:
-        print(
-            f"[RANKING WARN] {site['name']} parser '{ranking_type}' returned 0 items. "
-            f"Fallback found {len(fallback_items)} items."
-        )
-    else:
-        print(
-            f"[RANKING WARN] {site['name']} parser '{ranking_type}' returned 0 items. "
-            "Fallback also found 0 items."
-        )
-    return fallback_items[:MAX_RANKING_ITEMS]
+    items = items[:MAX_RANKING_ITEMS]
+    if not items:
+        return build_fetch_result(status="empty", detail=f"parser '{ranking_type}' returned 0 items")
+    return build_fetch_result(items=items)
 
 
 def _extract_json_array_from_text(text):
@@ -600,7 +554,7 @@ def fetch_sns_posts(session, category):
                     "Authorization": f"Bearer {api_key}",
                 },
                 json={
-                    "model": "grok-4-1-fast-reasoning",
+                    "model": os.environ.get("XAI_MODEL") or DEFAULT_XAI_MODEL,
                     "input": [{"role": "user", "content": category["prompt"]}],
                     "tools": [{"type": "x_search"}],
                     "temperature": 0.7,
@@ -717,36 +671,78 @@ def build_display_categories(category_data):
     return display_categories
 
 
-def main():
-    session = build_http_session()
+def run(session=None, output_dir=None):
+    """Fetch all sources, enforce the quality gate, and write dashboard files."""
+    owns_session = session is None
+    if session is None:
+        session = build_http_session()
+
     category_data = init_category_data()
     ranking_data = []
-    ranking_total_sources = sum(1 for site in SITES if site.get("ranking_url"))
+    ranking_total_sources = sum(
+        1 for site in SITES if site.get("ranking_url") or site.get("ranking_type")
+    )
     ranking_success_sources = 0
+    source_status = []
 
     try:
         for site in SITES:
             cat = site["category"]
             print(f"Fetching: {site['name']} ...")
             if site.get("type") == "scrape":
-                items = fetch_scrape_news(session, site)
+                kind = "scrape"
+                result = fetch_scrape_news(session, site)
             else:
-                items = fetch_feed(session, site)
+                kind = "feed"
+                result = fetch_feed(session, site)
+            items = result["items"]
             print(f"  -> {len(items)} items")
-            if items:
+            source_status.append({
+                "name": site["name"],
+                "kind": kind,
+                "status": result["status"],
+                "count": len(items),
+                "detail": result["detail"],
+            })
+            if result["status"] != "ok":
+                print(f"[FEED FAIL] {site['name']}: {result['status']} {result['detail']}")
+            else:
                 category_data[cat]["sites"].append(build_site_view_model(site, items))
                 category_data[cat]["total"] += len(items)
 
-            if site.get("ranking_url"):
+            if site.get("ranking_url") or site.get("ranking_type"):
                 print(f"  Fetching ranking: {site['name']} ...")
-                ranking_items = fetch_ranking(session, site)
+                ranking_result = fetch_ranking(session, site)
+                ranking_items = ranking_result["items"]
                 print(f"  -> {len(ranking_items)} ranking items")
-                if ranking_items:
+                source_status.append({
+                    "name": site["name"],
+                    "kind": "ranking",
+                    "status": ranking_result["status"],
+                    "count": len(ranking_items),
+                    "detail": ranking_result["detail"],
+                })
+                if ranking_result["status"] != "ok":
+                    print(
+                        f"[RANKING FAIL] {site['name']}: "
+                        f"{ranking_result['status']} {ranking_result['detail']}"
+                    )
+                else:
                     ranking_data.append(build_site_view_model(site, ranking_items))
                     ranking_success_sources += 1
 
         display_categories = build_display_categories(category_data)
         overall_total = sum(category["total"] for category in display_categories)
+        min_total_items = int(os.environ.get("NEWS_MIN_TOTAL_ITEMS", MIN_TOTAL_ITEMS))
+        if overall_total < min_total_items:
+            print(
+                f"[GATE FAIL] overall_total={overall_total} < "
+                f"MIN_TOTAL_ITEMS={min_total_items}; not writing docs/"
+            )
+            raise SystemExit(1)
+
+        if ranking_total_sources and ranking_success_sources == 0:
+            print(f"[RANKING ALL FAIL] all {ranking_total_sources} ranking sources failed")
 
         # Fetch SNS data
         sns_data = fetch_all_sns(session)
@@ -757,11 +753,22 @@ def main():
         template = env.get_template("index.html.j2")
 
         now_jst = datetime.now(JST)
+        ranking_failed_names = [
+            f"{row['name']} ({row['status']})"
+            for row in source_status
+            if row["kind"] == "ranking" and row["status"] != "ok"
+        ]
         ranking_status = {
             "total_sources": ranking_total_sources,
             "success_sources": ranking_success_sources,
             "failed_sources": ranking_total_sources - ranking_success_sources,
+            "failed_names": ranking_failed_names,
             "updated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        }
+        feed_status_by_name = {
+            row["name"]: {"status": row["status"], "detail": row["detail"]}
+            for row in source_status
+            if row["kind"] != "ranking"
         }
         html = template.render(
             display_categories=display_categories,
@@ -769,21 +776,54 @@ def main():
             all_sites=SITES,
             ranking_data=ranking_data,
             ranking_status=ranking_status,
+            source_status=source_status,
+            feed_status_by_name=feed_status_by_name,
             sns_data=sns_data,
             bookmarks=BOOKMARKS,
             updated_at=now_jst.strftime("%Y-%m-%d %H:%M JST"),
         )
 
-        docs_dir = os.path.join(project_root, "docs")
+        docs_dir = output_dir or os.path.join(project_root, "docs")
         os.makedirs(docs_dir, exist_ok=True)
         output_path = os.path.join(docs_dir, "index.html")
         with open(output_path, "w", encoding="utf-8") as file_obj:
             file_obj.write(html)
 
+        status_payload = {
+            "generated_at": now_jst.isoformat(timespec="seconds"),
+            "gate": {
+                "passed": True,
+                "overall_total": overall_total,
+                "min_total_items": min_total_items,
+            },
+            "feeds": {
+                "total_sources": len(SITES),
+                "ok_sources": sum(
+                    1 for row in source_status if row["kind"] != "ranking" and row["status"] == "ok"
+                ),
+            },
+            "rankings": {
+                "total_sources": ranking_total_sources,
+                "ok_sources": ranking_success_sources,
+            },
+            "sources": source_status,
+        }
+        status_path = os.path.join(docs_dir, "status.json")
+        with open(status_path, "w", encoding="utf-8") as file_obj:
+            json.dump(status_payload, file_obj, ensure_ascii=False, indent=2, sort_keys=True)
+            file_obj.write("\n")
+
         print(f"\nGenerated: {output_path}")
+        print(f"Status: {status_path}")
         print(f"Updated at: {now_jst.strftime('%Y-%m-%d %H:%M JST')}")
+        return status_payload
     finally:
-        session.close()
+        if owns_session:
+            session.close()
+
+
+def main():
+    run()
 
 
 if __name__ == "__main__":
