@@ -1,0 +1,41 @@
+name: CI
+
+# Runs the network-free pytest suite (scripts/tests) on the same Python the
+# production cron uses. Cron commits touch only docs/, so they are excluded.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: |
+            scripts/requirements.txt
+            scripts/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements-dev.txt
+
+      - name: Byte-compile scripts
+        run: python -m compileall -q scripts
+
+      - name: Run tests
+        run: python -m pytest scripts/tests -q
