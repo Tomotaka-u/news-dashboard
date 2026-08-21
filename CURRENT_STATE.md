@@ -1,6 +1,6 @@
 # news-dashboard 現状まとめ
 
-最終確認日: 2026-02-26
+最終確認日: 2026-08-21
 
 ---
 
@@ -32,13 +32,14 @@ news-dashboard/
 
 ---
 
-## タブ構成（3タブ）
+## タブ構成（4タブ）
 
 | タブ名 | 内容 |
 |--------|------|
 | Today's News | RSSフィード・スクレイピングによる最新記事 |
 | Rankings | 各サイトの人気記事ランキング |
 | SNS | xAI Grok API経由のXトレンドポスト |
+| Bookmarks | `config.py` / `BOOKMARKS` の静的リンク一覧（自動取得なし、手動巡回用） |
 
 ---
 
@@ -52,6 +53,8 @@ news-dashboard/
 | GIZMODO JAPAN | RSS | TECH | #2b2b2b |
 | The Verge | RSS | TECH | #6366f1 |
 | AI News | RSS | AI | #0ea5e9 |
+| CryptoSlate | RSS | CRYPTO | #1e40af |
+| Hacker News | RSS | TECH | #f97316 |
 | WIRED JAPAN | RSS | TECH | #111111 |
 
 ### ファッション・デザイン系
@@ -70,7 +73,6 @@ news-dashboard/
 | PR TIMES | scrape (prtimes_news) | PR | #0072bc |
 | Yahoo!ニュース | scrape (yahoo_news) | NEWS | #ff0033 |
 | BBC News | RSS | NEWS | #991b1b |
-| CryptoSlate | RSS | CRYPTO | #1e40af |
 
 ### 設定値
 - `MAX_ITEMS_PER_SITE = 8`（RSSフィード・スクレイピングの最大件数）
@@ -99,7 +101,19 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 
 サイト固有パーサーが0件だった場合は `extract_generic_ranking` にフォールバック。
 
-### ランキング参照先 調査メモ（2026-02-27）
+- TechCrunch のランキングは「Top Headlines」モジュールをスクレイプしており（`extract_techcrunch_ranking`）、人気ランキングではなく最新の編集記事一覧である点に注意。
+
+### 稼働状況（2026-08-21 時点）
+
+以下は設定はあるが、2026-08-21 時点の確認で取得できていない、または取得基準に疑義があるサイト（P0 修正予定、`plans/2026-08-21-p0-ranking-reliability.md` 参照）。
+
+| サイト | 症状 | 原因 |
+|--------|------|------|
+| GIZMODO JAPAN | 専用パーサーが0件 | `extract_gizmodo_ranking` のURL正規表現 `/\d{4}/\d{2}/`（`fetch_news.py`）が現行のURL形式 `/article/slug/` にマッチせず、`extract_generic_ranking` フォールバックがタグ／特集ページを表示してしまう |
+| JDN | `/pickup/` が0件、かつ人気ランキングではない | 「ピックアップ」は編集ピックアップ記事であり、アクセス数ベースのランキングではない |
+| WWDJAPAN | `/ranking` が本番で0件 | 原因未特定 |
+
+### ランキング参照先 調査メモ（2026-02-27・履歴）
 
 | サイト | 現在の `ranking_url` | 現在の抽出基準 | 観測結果（`docs/index.html`） | 判定 |
 |--------|----------------------|----------------|-------------------------------|------|
@@ -189,6 +203,7 @@ concurrency: `update-news-dashboard`（同時実行キャンセル）
   - `ranking_data` - ランキングデータ
   - `ranking_status` - ランキング取得状況（total/success/failed/updated_at）
   - `sns_data` - SNSカテゴリ一覧（posts含む）
+  - `bookmarks` - Bookmarksタブ用の静的サイト一覧（`config.py` / `BOOKMARKS`）
   - `updated_at` - 更新日時（JST）
 
 ### index.css（主要スタイル）
