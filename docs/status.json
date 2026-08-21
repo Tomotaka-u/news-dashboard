@@ -1,0 +1,207 @@
+{
+  "feeds": {
+    "ok_sources": 17,
+    "total_sources": 17
+  },
+  "gate": {
+    "min_total_items": 20,
+    "overall_total": 136,
+    "passed": true
+  },
+  "generated_at": "2026-08-21T18:38:08+09:00",
+  "rankings": {
+    "ok_sources": 10,
+    "total_sources": 10
+  },
+  "sources": [
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "TechCrunch",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "TechCrunch",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "ITmedia",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "ITmedia",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "GIZMODO JAPAN",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "GIZMODO JAPAN",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "The Verge",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "The Verge",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "AI News",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "CryptoSlate",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "Hacker News",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "Hacker News",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "FASHIONSNAP",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "FASHIONSNAP",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "designboom",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "WWDJAPAN",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "JDN",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "日経新聞",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "日経新聞",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "NADA NEWS",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "WIRED JAPAN",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "scrape",
+      "name": "PR TIMES",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "PR TIMES",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "scrape",
+      "name": "Yahoo!ニュース",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "Yahoo!ニュース",
+      "status": "ok"
+    },
+    {
+      "count": 8,
+      "detail": "",
+      "kind": "feed",
+      "name": "BBC News",
+      "status": "ok"
+    },
+    {
+      "count": 5,
+      "detail": "",
+      "kind": "ranking",
+      "name": "BBC News",
+      "status": "ok"
+    }
+  ]
+}
