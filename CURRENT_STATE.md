@@ -29,8 +29,11 @@ news-dashboard/
 ├── docs/                   # GitHub Pages 公開ディレクトリ（生成物）
 │   ├── index.html
 │   └── status.json         # 最後に品質ゲートを通過した実行の取得状況
-└── .github/workflows/
-    └── update-news.yml     # 自動更新ワークフロー
+└── .github/
+    ├── dependabot.yml      # pip / github-actions の週次更新 PR
+    └── workflows/
+        ├── update-news.yml # 自動更新ワークフロー（本番 cron）
+        └── ci.yml          # pytest（docs/ 以外の push・PR）
 ```
 
 ---
@@ -193,10 +196,19 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
   2. Python 3.12 セットアップ
   3. pip install -r scripts/requirements.txt
   4. python scripts/fetch_news.py（XAI_API_KEY注入）
-  5. docs/ に変更があればコミット&プッシュ
+  5. docs/ に変更があればコミット&プッシュ（push 失敗時は origin/main に rebase して最大3回リトライ。競合は exit 1 で失敗させる）
 ```
 
 concurrency: `update-news-dashboard`（同時実行キャンセル）
+actions: `actions/checkout@v7` / `actions/setup-python@v7`（Node 24 ランタイム。v4/v5 は Node 20 deprecation 警告が出る）
+
+### CI（ci.yml）
+
+`docs/` 以外への push（main）と pull_request で `scripts/tests` の pytest を Python 3.12 で実行（compileall も実行）。本番 cron と同じ Python で、ネットワーク不要のテストだけを回す。cron の `docs/` のみの commit では起動しない。
+
+### Dependabot（.github/dependabot.yml）
+
+毎週月曜（JST）に pip（`/scripts` の requirements）と github-actions を確認。pip は minor/patch を 1 PR にグループ化。マージ前に CI が通ることを確認する。
 
 品質ゲート失敗時は SNS API と `docs/` 書き込みより前に終了コード1で止まり、前回の正常版を保持する。公開 `status.json` は「最新試行」ではなく「最後にゲートを通過した成功実行」の状態を表すため、ゲート失敗自体は GitHub Actions の失敗履歴で確認する。
 

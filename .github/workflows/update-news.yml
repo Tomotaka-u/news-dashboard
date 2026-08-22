@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -40,4 +40,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/
-          git diff --cached --quiet || (git commit -m "Update news dashboard $(TZ=Asia/Tokyo date +%Y-%m-%d)" && git push)
+          if git diff --cached --quiet; then
+            echo "No changes in docs/; nothing to commit"
+            exit 0
+          fi
+          git commit -m "Update news dashboard $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+          # Retry push: a human push to main between checkout and here makes
+          # the first push non-fast-forward. The cron commit only touches docs/,
+          # so a rebase onto the new main is conflict-free; a real conflict
+          # fails loudly (exit 1) instead of being retried forever.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            if [ "${attempt}" -lt 3 ]; then
+              echo "push failed (attempt ${attempt}/3); rebasing onto origin/main and retrying"
+              git pull --rebase origin main || exit 1
+              sleep 10
+            fi
+          done
+          echo "push failed after 3 attempts"
+          exit 1
