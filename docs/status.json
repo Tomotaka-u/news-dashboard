@@ -8,7 +8,7 @@
     "overall_total": 128,
     "passed": true
   },
-  "generated_at": "2026-08-23T06:25:14+09:00",
+  "generated_at": "2026-08-23T18:29:07+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -72,10 +72,10 @@
     },
     {
       "count": 0,
-      "detail": "HTTPSConnectionPool(host='www.artificialintelligence-news.com', port=443): Max retries exceeded with url: /feed/rss/ (Caused by ConnectTimeoutError(<HTTPSConnection(host='www.artificialintelligence-ne",
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
       "kind": "feed",
       "name": "AI News",
-      "status": "http_error"
+      "status": "empty"
     },
     {
       "count": 8,
