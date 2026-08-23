@@ -1,14 +1,14 @@
 {
   "feeds": {
-    "ok_sources": 16,
+    "ok_sources": 17,
     "total_sources": 17
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 128,
+    "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-08-23T18:29:07+09:00",
+  "generated_at": "2026-08-24T06:24:05+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -71,11 +71,11 @@
       "status": "ok"
     },
     {
-      "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
+      "count": 8,
+      "detail": "",
       "kind": "feed",
       "name": "AI News",
-      "status": "empty"
+      "status": "ok"
     },
     {
       "count": 8,
