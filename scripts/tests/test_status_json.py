@@ -49,6 +49,8 @@ def test_status_schema_order_and_feed_status_not_overwritten(monkeypatch, tmp_pa
 
     assert written == returned
     assert set(written) == {"generated_at", "gate", "feeds", "rankings", "sources"}
+    assert written["feeds"] == {"total_sources": 2, "ok_sources": 1}
+    assert written["rankings"] == {"total_sources": 1, "ok_sources": 1}
     assert [(row["name"], row["kind"], row["status"], row["count"]) for row in written["sources"]] == [
         ("Shared Name", "feed", "empty", 0),
         ("Shared Name", "ranking", "ok", 1),
@@ -56,6 +58,7 @@ def test_status_schema_order_and_feed_status_not_overwritten(monkeypatch, tmp_pa
     ]
     html = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert "取得失敗" in html
+    assert html.count("取得失敗") == 1
     assert 'title="feed is empty"' in html
     assert 'href="status.json"' in html
 

@@ -1,6 +1,6 @@
 # news-dashboard 現状まとめ
 
-最終確認日: 2026-08-21
+最終確認日: 2026-08-24
 
 ---
 
@@ -108,31 +108,33 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 汎用フォールバックは使用しない。専用パーサーが0件なら `empty` として失敗表示・記録する。未知の `ranking_type` は `parse_error`。
 
 - TechCrunch はトップページのサーバHTMLに含まれる「Most Popular」モジュールを、そのクラス境界内だけスクレイプする。
-- GIZMODO JAPAN はトップページ「Ranking」の先頭 Daily パネル内だけをスクレイプする。
-- 日経新聞は `/access/` のアクセスランキングコンテナ `.m-miM32` 内だけをスクレイプする。
+- GIZMODO JAPAN はトップページ「Ranking」で active な Daily タブと同じ index のパネルを選び、順位 1〜5 と記事リンクが対応する場合だけ取得する。
+- FASHIONSNAP は `/ranking/` の「トップ100」内で初期選択された WEEKLY を起点に、順位 1〜5 と同じ item の記事リンクが対応する場合だけ取得する。
+- 日経新聞は `/access/` の最初のアクセスランキングコンテナ `.m-miM32` が「総合」かつ「今日」で、順位 1〜5 と記事リンクが対応する場合だけ取得する。
 
-### 稼働状況（2026-08-21 時点）
+### 稼働状況（2026-08-24 時点）
 
-本番UAのフル実行で、整理後のランキング10ソースはすべて5件取得できた（`overall_total=128`、feed/scrape は16/17成功）。
+本番UAのフル実行で、ランキング10ソースはすべて5件取得できた（`overall_total=136`、feed/scrape は17/17成功）。
 
 | サイト | 結論 |
 |--------|------|
 | TechCrunch | 「Most Popular」から5件取得。旧「Top Headlines」は使用しない |
-| GIZMODO JAPAN | Daily パネルから5件取得。`/article/slug/` に対応しタグ／特集ページを除外 |
+| GIZMODO JAPAN | active な Daily タブと同 index のパネルから、順位1〜5に対応する記事を5件取得 |
+| FASHIONSNAP | 「トップ100」の初期選択 WEEKLY から、非日付 slug を含む順位1〜5を5件取得 |
 | JDN | `/pickup/` は人気順ではないためランキング対象外 |
 | WWDJAPAN | 本番UAと Accept ヘッダでも `/ranking` が HTTP 403 のためランキング対象外。feed は取得可能 |
-| 日経新聞 | `/access/` がアクセスランキングページであることを確認し、コンテナ先頭5件を取得 |
+| 日経新聞 | `/access/` の「総合」かつ「今日」のコンテナから、順位1〜5に対応する記事を5件取得 |
 
 ### ランキング参照先 調査メモ（2026-02-27・履歴）
 
 | サイト | 現在の `ranking_url` | 現在の抽出基準 | 観測結果（`docs/index.html`） | 判定 |
 |--------|----------------------|----------------|-------------------------------|------|
 | JDN | 対象外（旧 `https://www.japandesign.ne.jp/pickup/`） | 編集ピックアップであり人気順ではない | 2026-08-21 にランキング設定を削除 | 対象外 |
-| GIZMODO JAPAN | `https://www.gizmodo.jp/` | `RANKING` コンテナの先頭 Daily パネル内 `/article/` | 本番UAで5件確認 | 運用中 |
+| GIZMODO JAPAN | `https://www.gizmodo.jp/` | `RANKING` の active Daily タブと同 index のパネル内、順位1〜5の `/article/` | 本番UAで5件確認 | 運用中 |
 
 メモ:
 - JDN は過去に「ピックアップ」基準へ変更したが、2026-08-21 に人気ランキングではないと再判定して対象外とした。
-- GIZMODO は専用ランキングURLではなく、トップページ `RANKING` モジュールの Daily を優先取得する方針。
+- GIZMODO は専用ランキングURLではなく、トップページ `RANKING` モジュールで active な Daily タブに対応するパネルを取得する方針。
 
 #### 参照先 方針確定（2026-02-27）
 - JDN: ランキングではなく「ピックアップ」を基準にする
@@ -185,6 +187,10 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
 | XAI_MODEL | xAI モデルの上書き。未設定時は `DEFAULT_XAI_MODEL` |
 | NEWS_MIN_TOTAL_ITEMS | テスト・診断用の品質ゲート上書き。実行時に整数として読む |
 
+### `status.json` / 画面の `detail` 方針
+
+URL・パス・クエリ・生の例外文は公開しない。取得例外は `summarize_error()` で要約し、全 `detail` に redaction の安全網を適用する。
+
 ---
 
 ## GitHub Actions（update-news.yml）
@@ -198,6 +204,8 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
   4. python scripts/fetch_news.py（XAI_API_KEY注入）
   5. docs/ に変更があればコミット&プッシュ（push 失敗時は origin/main に rebase して最大3回リトライ。競合は exit 1 で失敗させる）
 ```
+
+`docs/index.html` と `docs/status.json` は同じディレクトリの tmp へ書いてから `os.replace` で置換する。残存する `docs/*.tmp` は Git の対象外。
 
 concurrency: `update-news-dashboard`（同時実行キャンセル）
 actions: `actions/checkout@v7` / `actions/setup-python@v7`（Node 24 ランタイム。v4/v5 は Node 20 deprecation 警告が出る）

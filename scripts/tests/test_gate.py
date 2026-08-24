@@ -23,6 +23,7 @@ def items(count):
 
 
 def configure(monkeypatch, count):
+    monkeypatch.delenv("NEWS_MIN_TOTAL_ITEMS", raising=False)
     monkeypatch.setattr(fetch_news, "SITES", [SITE])
     monkeypatch.setattr(
         fetch_news,
