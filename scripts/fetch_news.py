@@ -37,6 +37,8 @@ RETRY_TOTAL = 3
 RETRY_BACKOFF = 0.7
 RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
 SNS_API_RETRY_TOTAL = 2
+HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+FEED_ACCEPT = "application/rss+xml,application/atom+xml,application/rdf+xml,application/xml;q=0.9,text/xml;q=0.9,*/*;q=0.8"
 
 
 def build_fetch_result(items=None, status="ok", detail=""):
@@ -50,13 +52,29 @@ def build_fetch_result(items=None, status="ok", detail=""):
     return {
         "items": items,
         "status": status,
-        "detail": sanitize_text(str(detail))[:200],
+        "detail": sanitize_text(redact_detail(str(detail)))[:200],
     }
 
 
 def sanitize_text(text):
     """Normalize text spacing for consistent rendering and deduplication."""
     return re.sub(r"\s+", " ", text or "").strip()
+
+
+def redact_detail(detail):
+    """Remove URLs, urllib3 request paths, and query strings from diagnostics."""
+    detail = re.sub(r"https?://\S+", "<url>", detail)
+    detail = re.sub(r"url: /\S*", "<url>", detail)
+    return re.sub(r"\?\S+", "<url>", detail)
+
+
+def summarize_error(exc, url):
+    """Create a safe, concise diagnostic for a fetch or parse error."""
+    if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
+        return f"HTTP {exc.response.status_code} {exc.response.reason}"
+    if isinstance(exc, requests.exceptions.RequestException):
+        return f"{type(exc).__name__} ({urlparse(url).hostname})"
+    return f"{type(exc).__name__}: {redact_detail(str(exc))[:160]}"
 
 
 def to_absolute_url(base_url, href):
@@ -81,6 +99,12 @@ def append_ranking_item(items, seen, title, href, base_url, min_title_length=1):
     items.append({"title": clean_title, "link": link})
 
 
+def _parse_rank_number(text):
+    """Return a normalized rank number when text uses an accepted format."""
+    match = re.fullmatch(r"0?(\d{1,3})(位|\.)?", sanitize_text(text or ""))
+    return int(match.group(1)) if match else None
+
+
 def build_http_session():
     """Create a requests session with retry policy for transient failures."""
     retry = Retry(
@@ -95,6 +119,10 @@ def build_http_session():
     )
     adapter = HTTPAdapter(max_retries=retry)
     session = requests.Session()
+    session.headers.update({
+        "User-Agent": USER_AGENT,
+        "Accept-Language": "ja,en;q=0.8",
+    })
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
@@ -105,12 +133,12 @@ def fetch_feed(session, site):
     try:
         resp = session.get(
             site["url"],
-            headers={"User-Agent": USER_AGENT},
+            headers={"Accept": FEED_ACCEPT},
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        return build_fetch_result(status="http_error", detail=exc)
+        return build_fetch_result(status="http_error", detail=summarize_error(exc, site["url"]))
 
     try:
         feed = feedparser.parse(resp.content)
@@ -132,7 +160,7 @@ def fetch_feed(session, site):
             detail = f"{detail} ({bozo_detail})"
         return build_fetch_result(status="empty", detail=detail)
     except Exception as exc:
-        return build_fetch_result(status="parse_error", detail=exc)
+        return build_fetch_result(status="parse_error", detail=summarize_error(exc, site["url"]))
 
 
 def extract_techcrunch_ranking(soup, ranking_url):
@@ -173,28 +201,63 @@ def extract_gizmodo_ranking(soup, ranking_url):
     container = ranking_heading.find_parent(
         "div", class_=lambda value: value and "rankingContainer" in value
     )
-    daily_list = container.find(
+    if container is None:
+        return items
+
+    tab_container = container.select_one(".gtm-rankingTab")
+    tabs = tab_container.find_all("button", recursive=False) if tab_container else []
+    panels = container.find_all(
+        "div", class_=lambda value: value and "ranking_slidePanel" in value
+    )
+    daily_index = next(
+        (
+            index
+            for index, tab in enumerate(tabs)
+            if sanitize_text(
+                (tab.select_one('[data-text="Daily"]') or tab).get_text(" ", strip=True)
+            )
+            == "Daily"
+        ),
+        None,
+    )
+    if daily_index is None or len(tabs) != len(panels) or daily_index >= len(panels):
+        return items
+    if not any("active" in class_name for class_name in tabs[daily_index].get("class", [])):
+        return items
+
+    daily_list = panels[daily_index].find(
         "section", class_=lambda value: value and "rankingList" in value
-    ) if container else None
+    )
     if daily_list is None:
         return items
 
-    # The first list inside the ranking container is the active Daily panel.
+    expected_rank = 1
     for a_tag in daily_list.find_all("a", href=True):
+        position = a_tag.find(
+            class_=lambda value: value and "rankingPosition" in value
+        )
+        if position is None:
+            continue
+        if _parse_rank_number(position.get_text(strip=True)) != expected_rank:
+            return []
+
         link = to_absolute_url(ranking_url, a_tag.get("href"))
         if "gizmodo.jp" not in link:
-            continue
+            return []
         path = urlparse(link).path or ""
         if any(excluded in path for excluded in ("/tag/", "/issue/", "/author/")):
-            continue
+            return []
         if not re.search(r"/(article/|\d{4}/\d{2}/)", path):
-            continue
+            return []
         title_node = a_tag.find(class_=lambda value: value and "rankingTitle" in value)
         title = title_node.get_text(" ", strip=True) if title_node else a_tag.get_text(" ", strip=True)
         append_ranking_item(items, seen, title, link, ranking_url, 10)
-        if len(items) >= MAX_RANKING_ITEMS:
+        if len(items) != expected_rank:
+            return []
+        expected_rank += 1
+        if expected_rank > MAX_RANKING_ITEMS:
             break
-    return items
+    return items if expected_rank == MAX_RANKING_ITEMS + 1 else []
 
 
 def extract_theverge_ranking(soup, ranking_url):
@@ -243,16 +306,82 @@ def extract_hackernews_ranking(soup, ranking_url):
 
 
 def extract_fashionsnap_ranking(soup, ranking_url):
+    heading = next(
+        (
+            heading
+            for heading in soup.find_all(["h1", "h2"])
+            if sanitize_text(heading.get_text(" ", strip=True)) == "トップ100"
+        ),
+        None,
+    )
+    if heading is None:
+        return []
+
+    section = next(
+        (
+            parent
+            for parent in heading.parents
+            if parent.select_one('[data-testid="weekly"]')
+            and parent.select_one('[data-testid="monthly"]')
+            and parent.select_one(".si7p730")
+        ),
+        None,
+    )
+    if section is None:
+        return []
+
+    weekly = section.select_one('[data-testid="weekly"]')
+    monthly = section.select_one('[data-testid="monthly"]')
+    if (
+        weekly is None
+        or monthly is None
+        or weekly.parent is not monthly.parent
+        or "s3r3r52" not in weekly.get("class", [])
+        or "s3r3r52" in monthly.get("class", [])
+    ):
+        return []
+
+    tabs = weekly.parent.find_all(attrs={"data-testid": ["weekly", "monthly"]}, recursive=False)
+    weekly_index = tabs.index(weekly)
+    ranking_roots = section.select("._7rl1co1")
+    if len(ranking_roots) == 1:
+        ranking_root = ranking_roots[0]
+    elif len(ranking_roots) == len(tabs):
+        ranking_root = ranking_roots[weekly_index]
+    else:
+        return []
+
     items = []
     seen = set()
-    for a_tag in soup.find_all("a", href=True):
-        href = a_tag.get("href")
-        if not re.match(r"/article/\d{4}-", href or ""):
-            continue
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
-        if len(items) >= MAX_RANKING_ITEMS:
-            break
-    return items
+    for expected_rank, block in enumerate(
+        ranking_root.select(".si7p730")[:MAX_RANKING_ITEMS], start=1
+    ):
+        rank_node = block.find("p")
+        if rank_node is None or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank:
+            return []
+
+        image_link = block.find("a", href=lambda href: href and href.startswith("/article/"))
+        wrapper = block.parent
+        title_node = wrapper.select_one("p.si7p732") if wrapper else None
+        title_link = title_node.find_parent("a", href=True) if title_node else None
+        if (
+            image_link is None
+            or title_link is None
+            or image_link.get("href") != title_link.get("href")
+        ):
+            return []
+
+        append_ranking_item(
+            items,
+            seen,
+            title_node.get_text(" ", strip=True),
+            title_link.get("href"),
+            ranking_url,
+            10,
+        )
+        if len(items) != expected_rank:
+            return []
+    return items if len(items) == MAX_RANKING_ITEMS else []
 
 
 def extract_nikkei_ranking(soup, ranking_url):
@@ -261,14 +390,25 @@ def extract_nikkei_ranking(soup, ranking_url):
     container = soup.select_one(".m-miM32")
     if container is None:
         return items
-    for a_tag in container.find_all("a", href=True):
-        href = a_tag.get("href")
-        if "/article/" not in (href or ""):
-            continue
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), href, ranking_url, 10)
-        if len(items) >= MAX_RANKING_ITEMS:
-            break
-    return items
+    title_node = container.select_one(".m-miM32_title")
+    current_node = container.select_one(".m-miM32_pulldownCurrentText")
+    if title_node is None or current_node is None or title_node.get_text(strip=True) != "総合" or current_node.get_text(strip=True) != "今日":
+        return []
+    for expected_rank, item in enumerate(
+        container.select(".m-miM32_item")[:MAX_RANKING_ITEMS], start=1
+    ):
+        rank_node = item.select_one(".m-miM32_itemNum")
+        a_tag = item.select_one('.m-miM32_itemTitleText a[href*="/article/"]')
+        if (
+            rank_node is None
+            or a_tag is None
+            or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank
+        ):
+            return []
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 10)
+        if len(items) != expected_rank:
+            return []
+    return items if len(items) == MAX_RANKING_ITEMS else []
 
 
 def extract_bbc_ranking(soup, ranking_url):
@@ -408,18 +548,18 @@ def fetch_scrape_news(session, site):
     try:
         resp = session.get(
             url,
-            headers={"User-Agent": USER_AGENT},
+            headers={"Accept": HTML_ACCEPT},
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        return build_fetch_result(status="http_error", detail=exc)
+        return build_fetch_result(status="http_error", detail=summarize_error(exc, url))
 
     try:
-        soup = BeautifulSoup(resp.text, "html.parser")
+        soup = BeautifulSoup(resp.content, "html.parser")
         items = extractor(soup, url)
     except Exception as exc:
-        return build_fetch_result(status="parse_error", detail=exc)
+        return build_fetch_result(status="parse_error", detail=summarize_error(exc, url))
 
     items = items[:MAX_ITEMS_PER_SITE]
     if not items:
@@ -441,22 +581,22 @@ def fetch_ranking(session, site):
     try:
         resp = session.get(
             ranking_url,
-            headers={"User-Agent": USER_AGENT},
+            headers={"Accept": HTML_ACCEPT},
             timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        return build_fetch_result(status="http_error", detail=exc)
+        return build_fetch_result(status="http_error", detail=summarize_error(exc, ranking_url))
 
     try:
         if ranking_type == "itmedia":
-            content = resp.content.decode("shift_jis", errors="replace")
+            content = resp.content.decode("cp932", errors="replace")
         else:
-            content = resp.text
+            content = resp.content
         soup = BeautifulSoup(content, "html.parser")
         items = extractor(soup, ranking_url)
     except Exception as exc:
-        return build_fetch_result(status="parse_error", detail=exc)
+        return build_fetch_result(status="parse_error", detail=summarize_error(exc, ranking_url))
 
     items = items[:MAX_RANKING_ITEMS]
     if not items:
@@ -671,6 +811,22 @@ def build_display_categories(category_data):
     return display_categories
 
 
+def _write_tmp(path, text):
+    """Write text to a synced temporary file beside its final destination."""
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as file_obj:
+        file_obj.write(text)
+        file_obj.flush()
+        os.fsync(file_obj.fileno())
+    return tmp_path
+
+
+def _replace_all(pairs):
+    """Replace final files with prepared temporary files in order."""
+    for tmp_path, final_path in pairs:
+        os.replace(tmp_path, final_path)
+
+
 def run(session=None, output_dir=None):
     """Fetch all sources, enforce the quality gate, and write dashboard files."""
     owns_session = session is None
@@ -785,10 +941,6 @@ def run(session=None, output_dir=None):
 
         docs_dir = output_dir or os.path.join(project_root, "docs")
         os.makedirs(docs_dir, exist_ok=True)
-        output_path = os.path.join(docs_dir, "index.html")
-        with open(output_path, "w", encoding="utf-8") as file_obj:
-            file_obj.write(html)
-
         status_payload = {
             "generated_at": now_jst.isoformat(timespec="seconds"),
             "gate": {
@@ -797,7 +949,7 @@ def run(session=None, output_dir=None):
                 "min_total_items": min_total_items,
             },
             "feeds": {
-                "total_sources": len(SITES),
+                "total_sources": sum(1 for row in source_status if row["kind"] != "ranking"),
                 "ok_sources": sum(
                     1 for row in source_status if row["kind"] != "ranking" and row["status"] == "ok"
                 ),
@@ -808,10 +960,20 @@ def run(session=None, output_dir=None):
             },
             "sources": source_status,
         }
+        output_path = os.path.join(docs_dir, "index.html")
         status_path = os.path.join(docs_dir, "status.json")
-        with open(status_path, "w", encoding="utf-8") as file_obj:
-            json.dump(status_payload, file_obj, ensure_ascii=False, indent=2, sort_keys=True)
-            file_obj.write("\n")
+        status_text = json.dumps(status_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        index_tmp = f"{output_path}.tmp"
+        status_tmp = f"{status_path}.tmp"
+        try:
+            index_tmp = _write_tmp(output_path, html)
+            status_tmp = _write_tmp(status_path, status_text)
+        except Exception:
+            for tmp_path in (index_tmp, status_tmp):
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            raise
+        _replace_all([(index_tmp, output_path), (status_tmp, status_path)])
 
         print(f"\nGenerated: {output_path}")
         print(f"Status: {status_path}")
