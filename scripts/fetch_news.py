@@ -644,6 +644,7 @@ def fetch_ranking(session, site):
             print(f"[RANKING FAIL DETAIL] {site.get('name', '?')}: anchor={reason}")
         _RANKING_DIAG["reason"] = None
     except Exception as exc:
+        _RANKING_DIAG["reason"] = None
         return build_fetch_result(status="parse_error", detail=summarize_error(exc, ranking_url))
 
     items = items[:MAX_RANKING_ITEMS]

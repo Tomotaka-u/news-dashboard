@@ -90,6 +90,20 @@ def test_fetch_ranking_resets_stale_fail_detail(monkeypatch, capsys):
     assert capsys.readouterr().out == ""
     assert fetch_news._RANKING_DIAG["reason"] is None
 
+    def fail_then_raise(soup, url):
+        fetch_news._ranking_fail("fixture:anchor")
+        raise ValueError("fixture parser failed")
+
+    monkeypatch.setitem(fetch_news.RANKING_EXTRACTORS, "fixture", fail_then_raise)
+    result = fetch_news.fetch_ranking(
+        FakeSession(),
+        {"name": "Fixture", "ranking_url": "https://example.com/ranking", "ranking_type": "fixture"},
+    )
+
+    assert result["status"] == "parse_error"
+    assert capsys.readouterr().out == ""
+    assert fetch_news._RANKING_DIAG["reason"] is None
+
 
 def test_strict_extractor_entry_resets_previous_fail_reason():
     fixtures = Path(__file__).parent / "fixtures"
