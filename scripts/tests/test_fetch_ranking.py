@@ -1,4 +1,6 @@
 import fetch_news
+from bs4 import BeautifulSoup
+from pathlib import Path
 
 
 class FakeResponse:
@@ -53,3 +55,52 @@ def test_result_builder_does_not_allow_empty_success():
         "status": "empty",
         "detail": "0 items after filtering",
     }
+
+
+def test_fail_detail_is_stdout_only_and_consumed(monkeypatch, capsys):
+    monkeypatch.setitem(
+        fetch_news.RANKING_EXTRACTORS,
+        "fixture",
+        lambda soup, url: fetch_news._ranking_fail("fixture:anchor"),
+    )
+
+    result = fetch_news.fetch_ranking(
+        FakeSession(),
+        {"name": "Fixture", "ranking_url": "https://example.com/ranking", "ranking_type": "fixture"},
+    )
+
+    assert capsys.readouterr().out == "[RANKING FAIL DETAIL] Fixture: anchor=fixture:anchor\n"
+    assert result == {
+        "items": [],
+        "status": "empty",
+        "detail": "parser 'fixture' returned 0 items",
+    }
+    assert fetch_news._RANKING_DIAG["reason"] is None
+
+
+def test_fetch_ranking_resets_stale_fail_detail(monkeypatch, capsys):
+    fetch_news._RANKING_DIAG["reason"] = "stale:anchor"
+    monkeypatch.setitem(fetch_news.RANKING_EXTRACTORS, "fixture", lambda soup, url: [])
+
+    fetch_news.fetch_ranking(
+        FakeSession(),
+        {"name": "Fixture", "ranking_url": "https://example.com/ranking", "ranking_type": "fixture"},
+    )
+
+    assert capsys.readouterr().out == ""
+    assert fetch_news._RANKING_DIAG["reason"] is None
+
+
+def test_strict_extractor_entry_resets_previous_fail_reason():
+    fixtures = Path(__file__).parent / "fixtures"
+    negative_soup = BeautifulSoup(
+        (fixtures / "gizmodo-ranking-rank-gap.html").read_text(encoding="utf-8"), "html.parser"
+    )
+    positive_soup = BeautifulSoup(
+        (fixtures / "gizmodo-ranking.html").read_text(encoding="utf-8"), "html.parser"
+    )
+
+    assert fetch_news.extract_gizmodo_ranking(negative_soup, "https://www.gizmodo.jp/") == []
+    assert fetch_news._RANKING_DIAG["reason"] == "gizmodo:rank_seq"
+    assert len(fetch_news.extract_gizmodo_ranking(positive_soup, "https://www.gizmodo.jp/")) == 5
+    assert fetch_news._RANKING_DIAG["reason"] is None

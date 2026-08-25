@@ -67,6 +67,14 @@ def test_extract_gizmodo_rejects_rank_gap():
     assert items == []
 
 
+def test_extract_gizmodo_records_rank_gap_reason():
+    fetch_news.extract_gizmodo_ranking(
+        load_fixture("gizmodo-ranking-rank-gap.html"), "https://www.gizmodo.jp/"
+    )
+
+    assert fetch_news._RANKING_DIAG["reason"] == "gizmodo:rank_seq"
+
+
 def test_extract_gizmodo_rejects_inactive_daily_tab():
     items = fetch_news.extract_gizmodo_ranking(
         load_fixture("gizmodo-ranking-daily-inactive.html"), "https://www.gizmodo.jp/"
@@ -194,6 +202,15 @@ def test_extract_fashionsnap_rejects_missing_all_tab():
     assert items == []
 
 
+def test_extract_fashionsnap_records_missing_all_tab_reason():
+    fetch_news.extract_fashionsnap_ranking(
+        load_fixture("fashionsnap-ranking-all-missing.html"),
+        "https://www.fashionsnap.com/ranking/",
+    )
+
+    assert fetch_news._RANKING_DIAG["reason"] == "fashionsnap:all_tab"
+
+
 def test_extract_fashionsnap_rejects_duplicate_all_tab():
     items = fetch_news.extract_fashionsnap_ranking(
         load_fixture("fashionsnap-ranking-all-duplicate.html"),
@@ -259,6 +276,14 @@ def test_extract_nikkei_rejects_no_matching_today_container():
     )
 
     assert items == []
+
+
+def test_extract_nikkei_records_no_matching_container_reason():
+    fetch_news.extract_nikkei_ranking(
+        load_fixture("nikkei-ranking-no-match.html"), "https://www.nikkei.com/access/"
+    )
+
+    assert fetch_news._RANKING_DIAG["reason"] == "nikkei:container"
 
 
 def test_extract_nikkei_rejects_rank_gap():
