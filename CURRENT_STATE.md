@@ -108,9 +108,9 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 汎用フォールバックは使用しない。専用パーサーが0件なら `empty` として失敗表示・記録する。未知の `ranking_type` は `parse_error`。
 
 - TechCrunch はトップページのサーバHTMLに含まれる「Most Popular」モジュールを、そのクラス境界内だけスクレイプする。
-- GIZMODO JAPAN はトップページ「Ranking」で `ranking_active` 基底名に完全一致する Daily タブと同じ index のパネルを選び、順位 1〜5 と記事リンクが対応する場合だけ取得する。
+- GIZMODO JAPAN はトップページ「Ranking」で `ranking_active` 基底名に完全一致する Daily タブと同じ index のパネルを選び、順位 1〜5 と記事リンクが対応する場合だけ取得する。タイトルは `rankingTitle` 要素から取り、順位番号だけのタイトルは拒否する。
 - FASHIONSNAP は `/ranking/` の「トップ100」内を class 名に依存せず文書順に走査する。初期選択された WEEKLY の証拠だけ `s3r3r52` を使い、`data-testid="all"` と同じ index のカテゴリ系列で順位 1〜5 と直後の同一記事リンクが対応する場合だけ取得する。
-- 日経新聞は `/access/` で「総合」かつ「今日」に一致する最初のアクセスランキングコンテナ `.m-miM32` を探し、順位 1〜5 と記事リンクが対応する場合だけ取得する（先頭コンテナ固定ではない）。
+- 日経新聞は `/access/` で「総合」かつ「今日」に一致する最初のアクセスランキングコンテナ `.m-miM32` を探し、順位 1〜5 と記事リンクが対応する場合だけ取得する（先頭コンテナ固定ではない）。順位番号だけのタイトルは拒否する。
 
 ### 稼働状況（フル実行: 2026-08-24、対象3サイト再検証: 2026-08-25）
 
@@ -190,6 +190,8 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
 ### `status.json` / 画面の `detail` 方針
 
 URL・パス・クエリ・生の例外文は公開しない。取得例外は `summarize_error()` で要約し、全 `detail` に redaction の安全網を適用する。
+
+`[RANKING FAIL DETAIL] <site>: anchor=<site>:<anchor>` は Actions の STDOUT にだけ出る診断で、`status.json` と画面には出さない。理由は固定識別子のみを使用する。
 
 ---
 
