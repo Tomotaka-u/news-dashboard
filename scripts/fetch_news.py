@@ -73,7 +73,8 @@ def summarize_error(exc, url):
     if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
         return f"HTTP {exc.response.status_code} {exc.response.reason}"
     if isinstance(exc, requests.exceptions.RequestException):
-        return f"{type(exc).__name__} ({urlparse(url).hostname})"
+        hostname = urlparse(url).hostname or "unknown-host"
+        return f"{type(exc).__name__} ({hostname})"
     return f"{type(exc).__name__}: {redact_detail(str(exc))[:160]}"
 
 
@@ -191,10 +192,6 @@ def extract_gizmodo_ranking(soup, ranking_url):
             ranking_heading = heading
             break
 
-    # Fallback to legacy class name if exact heading text is not available.
-    if ranking_heading is None:
-        ranking_heading = soup.find("h2", class_="s-Ranking_Heading")
-
     if ranking_heading is None:
         return items
 
@@ -222,7 +219,10 @@ def extract_gizmodo_ranking(soup, ranking_url):
     )
     if daily_index is None or len(tabs) != len(panels) or daily_index >= len(panels):
         return items
-    if not any("active" in class_name for class_name in tabs[daily_index].get("class", [])):
+    if not any(
+        re.fullmatch(r"ranking_active(__\w+)?", class_name)
+        for class_name in tabs[daily_index].get("class", [])
+    ):
         return items
 
     daily_list = panels[daily_index].find(
@@ -251,7 +251,7 @@ def extract_gizmodo_ranking(soup, ranking_url):
             return []
         title_node = a_tag.find(class_=lambda value: value and "rankingTitle" in value)
         title = title_node.get_text(" ", strip=True) if title_node else a_tag.get_text(" ", strip=True)
-        append_ranking_item(items, seen, title, link, ranking_url, 10)
+        append_ranking_item(items, seen, title, link, ranking_url)
         if len(items) != expected_rank:
             return []
         expected_rank += 1
@@ -323,7 +323,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
             for parent in heading.parents
             if parent.select_one('[data-testid="weekly"]')
             and parent.select_one('[data-testid="monthly"]')
-            and parent.select_one(".si7p730")
+            and parent.select_one('a[href^="/article/"]')
         ),
         None,
     )
@@ -342,42 +342,64 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         return []
 
     tabs = weekly.parent.find_all(attrs={"data-testid": ["weekly", "monthly"]}, recursive=False)
-    weekly_index = tabs.index(weekly)
-    ranking_roots = section.select("._7rl1co1")
-    if len(ranking_roots) == 1:
-        ranking_root = ranking_roots[0]
-    elif len(ranking_roots) == len(tabs):
-        ranking_root = ranking_roots[weekly_index]
-    else:
+    if len(tabs) != 2:
         return []
+
+    all_tabs = section.select('[data-testid="all"]')
+    if len(all_tabs) != 1:
+        return []
+    all_tab = all_tabs[0]
+    category_tabs = all_tab.parent.find_all(attrs={"data-testid": True}, recursive=False)
+    category_testids = [tab.get("data-testid") for tab in category_tabs]
+    if (
+        len(category_tabs) != 4
+        or set(category_testids) != {"all", "fashion", "beauty", "other"}
+    ):
+        return []
+    all_index = category_tabs.index(all_tab)
+
+    article_links = section.select('a[href^="/article/"]')
+    ranked_links = [
+        (index, a_tag, rank)
+        for index, a_tag in enumerate(article_links)
+        if (rank := _parse_rank_number(a_tag.get_text(" ", strip=True))) is not None
+    ]
+    series_starts = [
+        index
+        for index, (_, _, rank) in enumerate(ranked_links)
+        if rank == 1
+    ]
+    if len(series_starts) != len(category_tabs):
+        return []
+    series_start = series_starts[all_index]
 
     items = []
     seen = set()
-    for expected_rank, block in enumerate(
-        ranking_root.select(".si7p730")[:MAX_RANKING_ITEMS], start=1
-    ):
-        rank_node = block.find("p")
-        if rank_node is None or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank:
+    for expected_rank in range(1, MAX_RANKING_ITEMS + 1):
+        ranked_index = series_start + expected_rank - 1
+        if ranked_index >= len(ranked_links):
             return []
 
-        image_link = block.find("a", href=lambda href: href and href.startswith("/article/"))
-        wrapper = block.parent
-        title_node = wrapper.select_one("p.si7p732") if wrapper else None
-        title_link = title_node.find_parent("a", href=True) if title_node else None
+        link_index, rank_link, rank = ranked_links[ranked_index]
+        if link_index + 1 >= len(article_links):
+            return []
+
+        title_link = article_links[link_index + 1]
+        title = sanitize_text(title_link.get_text(" ", strip=True))
         if (
-            image_link is None
-            or title_link is None
-            or image_link.get("href") != title_link.get("href")
+            rank != expected_rank
+            or rank_link.get("href") != title_link.get("href")
+            or not title
+            or _parse_rank_number(title) is not None
         ):
             return []
 
         append_ranking_item(
             items,
             seen,
-            title_node.get_text(" ", strip=True),
+            title,
             title_link.get("href"),
             ranking_url,
-            10,
         )
         if len(items) != expected_rank:
             return []
@@ -387,13 +409,19 @@ def extract_fashionsnap_ranking(soup, ranking_url):
 def extract_nikkei_ranking(soup, ranking_url):
     items = []
     seen = set()
-    container = soup.select_one(".m-miM32")
+    container = next(
+        (
+            candidate
+            for candidate in soup.select(".m-miM32")
+            if (title_node := candidate.select_one(".m-miM32_title")) is not None
+            and (current_node := candidate.select_one(".m-miM32_pulldownCurrentText")) is not None
+            and title_node.get_text(strip=True) == "総合"
+            and current_node.get_text(strip=True) == "今日"
+        ),
+        None,
+    )
     if container is None:
         return items
-    title_node = container.select_one(".m-miM32_title")
-    current_node = container.select_one(".m-miM32_pulldownCurrentText")
-    if title_node is None or current_node is None or title_node.get_text(strip=True) != "総合" or current_node.get_text(strip=True) != "今日":
-        return []
     for expected_rank, item in enumerate(
         container.select(".m-miM32_item")[:MAX_RANKING_ITEMS], start=1
     ):
@@ -405,7 +433,7 @@ def extract_nikkei_ranking(soup, ranking_url):
             or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank
         ):
             return []
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url, 10)
+        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url)
         if len(items) != expected_rank:
             return []
     return items if len(items) == MAX_RANKING_ITEMS else []
