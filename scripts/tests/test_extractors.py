@@ -83,6 +83,22 @@ def test_extract_gizmodo_rejects_tab_panel_mismatch():
     assert items == []
 
 
+def test_extract_gizmodo_rejects_rank_number_title():
+    items = fetch_news.extract_gizmodo_ranking(
+        load_fixture("gizmodo-ranking-title-is-rank-number.html"), "https://www.gizmodo.jp/"
+    )
+
+    assert items == []
+
+
+def test_extract_gizmodo_requires_ranking_title_node():
+    items = fetch_news.extract_gizmodo_ranking(
+        load_fixture("gizmodo-ranking-title-node-missing.html"), "https://www.gizmodo.jp/"
+    )
+
+    assert items == []
+
+
 def test_extract_fashionsnap_all_category_top_five_in_rank_order():
     items = fetch_news.extract_fashionsnap_ranking(
         load_fixture("fashionsnap-ranking-categories.html"), "https://www.fashionsnap.com/ranking/"
@@ -188,15 +204,25 @@ def test_extract_fashionsnap_rejects_duplicate_all_tab():
 
 
 def test_extract_fashionsnap_ignores_rehashed_classes():
+    expected_items = fetch_news.extract_fashionsnap_ranking(
+        load_fixture("fashionsnap-ranking-categories.html"), "https://www.fashionsnap.com/ranking/"
+    )
     items = fetch_news.extract_fashionsnap_ranking(
         load_fixture("fashionsnap-ranking-rehashed-categories.html"),
         "https://www.fashionsnap.com/ranking/",
     )
 
-    assert [item["link"] for item in items] == [
-        f"https://www.fashionsnap.com/article/all-{number}/"
-        for number in ("one", "two", "three", "four", "five")
-    ]
+    assert items == expected_items
+    assert len(items) == 5
+
+
+def test_extract_fashionsnap_rejects_rotated_weekly_hash():
+    items = fetch_news.extract_fashionsnap_ranking(
+        load_fixture("fashionsnap-ranking-weekly-hash-rotated.html"),
+        "https://www.fashionsnap.com/ranking/",
+    )
+
+    assert items == []
 
 
 def test_extract_nikkei_today_top_five_in_rank_order():
@@ -238,6 +264,14 @@ def test_extract_nikkei_rejects_no_matching_today_container():
 def test_extract_nikkei_rejects_rank_gap():
     items = fetch_news.extract_nikkei_ranking(
         load_fixture("nikkei-ranking-rank-gap.html"), "https://www.nikkei.com/access/"
+    )
+
+    assert items == []
+
+
+def test_extract_nikkei_rejects_rank_number_title():
+    items = fetch_news.extract_nikkei_ranking(
+        load_fixture("nikkei-ranking-title-is-rank-number.html"), "https://www.nikkei.com/access/"
     )
 
     assert items == []
