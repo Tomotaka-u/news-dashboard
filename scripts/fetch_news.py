@@ -250,7 +250,9 @@ def extract_gizmodo_ranking(soup, ranking_url):
         if not re.search(r"/(article/|\d{4}/\d{2}/)", path):
             return []
         title_node = a_tag.find(class_=lambda value: value and "rankingTitle" in value)
-        title = title_node.get_text(" ", strip=True) if title_node else a_tag.get_text(" ", strip=True)
+        title = sanitize_text(title_node.get_text(" ", strip=True)) if title_node else ""
+        if not title or _parse_rank_number(title) is not None:
+            return []
         append_ranking_item(items, seen, title, link, ranking_url)
         if len(items) != expected_rank:
             return []
@@ -433,7 +435,10 @@ def extract_nikkei_ranking(soup, ranking_url):
             or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank
         ):
             return []
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url)
+        title = sanitize_text(a_tag.get_text(strip=True))
+        if not title or _parse_rank_number(title) is not None:
+            return []
+        append_ranking_item(items, seen, title, a_tag.get("href"), ranking_url)
         if len(items) != expected_rank:
             return []
     return items if len(items) == MAX_RANKING_ITEMS else []
