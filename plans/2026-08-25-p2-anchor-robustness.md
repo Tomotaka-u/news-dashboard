@@ -34,7 +34,7 @@
 | 6 | 負例テストが薄い（順位が飛ぶ / Daily 非 active / tabs≠panels / MONTHLY active / 系列数不一致 が未検証） | `scripts/tests/test_extractors.py` |
 | 7 | `summarize_error` で `hostname` が None のとき `(None)` と出る | L76 |
 
-**成功の定義**: 上記 1〜7 を直した後も、(a) fixture テストの期待値（順位 1〜5 と記事の対応）は変わらない、(b) ライブ 3 サイトの before/after の title / link 5 件が完全一致、(c) `status.json` のキー・語彙・並びが不変。**成功条件を緩めて `ok` を増やす変更は禁止**。
+**成功の定義**: 上記 1〜7 を直した後も、(a) fixture テストの順位 1〜5 と記事の対応は変わらない（FASHIONSNAP は承認済み D1 改訂により、旧時間パネル fixture からカテゴリ系列 fixture へ契約を置き換える）、(b) ライブ 3 サイトの before/after の title / link 5 件が完全一致、(c) `status.json` のキー・語彙・並びが不変。**成功条件を緩めて `ok` を増やす変更は禁止**。
 
 ## 2. 設計判断（確定済み。変えたい場合は理由を添えて報告し、勝手に変えない）
 
@@ -44,16 +44,18 @@
 - テストは **fixture を先に書き、失敗を確認してから実装**する（負例は特に。現行コードで通ってしまう負例は負例になっていない）
 
 ### D1. FASHIONSNAP: class 名非依存の走査に書き直す
-- 残してよいアンカー: 見出し `トップ100`（h1/h2 の文言）、`data-testid="weekly"` / `"monthly"`、記事リンク `href^="/article/"`、順位番号、**初期選択の証拠 `s3r3r52`**（これだけは代替が無い。ライブ HTML に `aria-selected` / `aria-current` / `data-state` 等が存在するかを D1 のライブ確認で見て、あれば報告する。**あっても今回は切り替えない**。監督判断）
+- **2026-08-25 実装時改訂（ユーザー承認済み）**: ライブ DOM では順位系列が時間 tabs（weekly / monthly）ではなくカテゴリ tabs（all / fashion / beauty / other）と対応していたため、`data-testid="all"` を意味的アンカーへ追加し、カテゴリ系列の対応に修正する。DOM 深度で系列を選ぶ案は wrapper 変更で誤採用し得るため不採用
+- 残してよいアンカー: 見出し `トップ100`（h1/h2 の文言）、時間 tabs の `data-testid="weekly"` / `"monthly"`、カテゴリ tabs の `data-testid="all"` / `"fashion"` / `"beauty"` / `"other"`、記事リンク `href^="/article/"`、順位番号、**初期選択の証拠 `s3r3r52`**（これだけは代替が無い。ライブ HTML に `aria-selected` / `aria-current` / `data-state` 等が存在するかを D1 のライブ確認で見て、あれば報告する。**あっても今回は切り替えない**。監督判断）
 - 消すアンカー: `si7p730` / `si7p732` / `_7rl1co1` と `block.parent` 経由の wrapper 依存
 - 手順:
   1. section の決め方は現行どおり（見出しの親をたどり weekly と monthly を両方含む要素）。ただし第 3 条件 `.si7p730` を「`a[href^="/article/"]` を含む」に置き換える
-  2. tabs / weekly_index の求め方は現行どおり（`weekly.parent` 直下の data-testid 要素、`s3r3r52` が weekly にあり monthly にないこと）
-  3. section 内の `a[href^="/article/"]` を**文書順**に走査し、`_parse_rank_number(a.get_text())` が None でないものを「順位アンカー」とする。順位アンカーは値 1 で新しい系列を開始し、以降 2, 3, … と連続する限り同じ系列に属する。連続しない（1 の次に 3 が来る等）場合はそこで系列を打ち切り、その系列は不成立
-  4. 各順位アンカーに対応する「タイトルアンカー」は、文書順で**その順位アンカーの直後**に現れる `a[href^="/article/"]` で、`href` が順位アンカーと等しく、sanitize 後のテキストが空でなく順位番号でもないもの。無ければその系列は不成立
-  5. 成立した系列（順位 1〜5 の 5 対がそろったもの）の数が **1 なら** それを採る。**tabs の数と等しければ** `weekly_index` 番目を採る。それ以外は `[]`（現行の `_7rl1co1` 本数の 2 分岐と同じ意味を、class 名なしで表現する）
-  6. `append_ranking_item` の `min_title_length` は既定値（D3）
-- fixture: 既存 3 本（`fashionsnap-ranking.html` / `-weekly-second.html` / `-no-container.html`）は **class 名を残したまま**でよい（ライブの写しであるため）。新規負例は D6
+  2. 時間 tabs は `weekly.parent` 直下の weekly / monthly 2 要素だけを認め、`s3r3r52` が weekly にあり monthly にないことを初期選択の証拠とする
+  3. `data-testid="all"` は section 内にちょうど 1 個を要求する。`all.parent` 直下のカテゴリ tabs は all / fashion / beauty / other の重複なし 4 要素だけを認め、文書順の `all_index` を求める。欠落・重複・未知カテゴリは `[]`
+  4. section 内の `a[href^="/article/"]` を**文書順**に走査し、`_parse_rank_number(a.get_text())` が None でないものだけを「順位アンカー」とする。値 1 の順位アンカーを各カテゴリ系列の開始とし、生の系列開始数がカテゴリ tabs 数と完全一致する場合だけ `all_index` 番目を選ぶ
+  5. 選んだ all 系列の順位アンカーが 1〜5 と連続することを確認する。all 系列が壊れていても別カテゴリ系列へ乗り換えない
+  6. 各順位アンカーに対応する「タイトルアンカー」は、全 article link 列で**その順位アンカーの直後**に現れる 1 本だけとする。`href` が順位アンカーと等しく、sanitize 後のテキストが空でなく順位番号でもないことを要求する。タイトル後から次の順位アンカーまでにあるカテゴリリンクは無視する
+  7. `append_ranking_item` の `min_title_length` は既定値（D3）
+- fixture: ライブ由来のカテゴリ4系列正例、all が2番目の正例、all 破損時の乗り換え禁止、カテゴリ tabs / 系列数不一致、all 欠落・重複、class 総入替を D6 で固定する。旧 `fashionsnap-ranking.html` / `-weekly-second.html` は改訂前 DOM の履歴 fixture として残すが、改訂後の抽出契約テストには使わない
 
 ### D2. GIZMODO: active 判定を CSS Modules の基底名でアンカーする
 - `"active" in class_name` を、class トークンが `re.fullmatch(r"ranking_active(__\w+)?", token)` に一致するものが tabs[daily_index] にあるか、に変える（基底名 `ranking_active` はソース由来で安定、`__Idnm1` 部分はビルドハッシュ）
@@ -78,9 +80,15 @@
 | GIZMODO Daily タブが非 active（class に `ranking_inactive__x` のみ。部分一致なら誤って通る） | `gizmodo-ranking-daily-inactive.html` | `[]` |
 | GIZMODO tabs 3 / panels 2 | `gizmodo-ranking-tab-panel-mismatch.html` | `[]` |
 | FASHIONSNAP MONTHLY が初期選択 | `fashionsnap-ranking-monthly-active.html` | `[]` |
-| FASHIONSNAP 系列 3 本・tabs 2 | `fashionsnap-ranking-series-mismatch.html` | `[]` |
-| FASHIONSNAP 順位アンカーの直後リンクが別 href | `fashionsnap-ranking-href-mismatch.html` | `[]` |
-| FASHIONSNAP class 名を全て差し替えた正例（`s3r3r52` 以外の class を `x1`…に置換） | `fashionsnap-ranking-rehashed.html` | 5 件、`fashionsnap-ranking.html` と同じ title/link |
+| FASHIONSNAP カテゴリ4 tabs / 4系列、タイトル後にカテゴリリンクがあるライブ由来正例 | `fashionsnap-ranking-categories.html` | all 系列の5件 |
+| FASHIONSNAP all がカテゴリ tabs の2番目 | `fashionsnap-ranking-all-second.html` | 2番目の all 系列5件 |
+| FASHIONSNAP カテゴリ4 tabs / 系列3本 | `fashionsnap-ranking-series-mismatch.html` | `[]` |
+| FASHIONSNAP カテゴリ4 tabs / 系列5本 | `fashionsnap-ranking-series-excess.html` | `[]` |
+| FASHIONSNAP all 系列だけ順位が飛ぶ（1,2,4,5,6） | `fashionsnap-ranking-all-rank-gap.html` | `[]`（他系列へ乗り換えない） |
+| FASHIONSNAP all 系列の順位アンカー直後リンクが別 href（他3系列は正常） | `fashionsnap-ranking-href-mismatch.html` | `[]`（他系列へ乗り換えない） |
+| FASHIONSNAP all 欠落 / 重複 | `fashionsnap-ranking-all-missing.html` / `-all-duplicate.html` | `[]` / `[]` |
+| FASHIONSNAP all を含むが未知カテゴリがある | `fashionsnap-ranking-unknown-category.html` | `[]` |
+| FASHIONSNAP class 名を全て差し替えたカテゴリ正例（`s3r3r52` 以外を `x-*` に置換） | `fashionsnap-ranking-rehashed-categories.html` | all 系列の5件 |
 | 日経 順位が飛ぶ | `nikkei-ranking-rank-gap.html` | `[]` |
 | 日経 D4 の 2 本 | 上記 | 5 件 / `[]` |
 - 各 fixture は 50KB 以下、トラッキング・PII を含めない。既存 fixture のコピー＋最小改変で作る
@@ -106,7 +114,7 @@
 
 ## 4. 検証（報告に出力を貼る）
 1. `python -m pytest scripts/tests -q` → 27 + 新規本数 passed。`python -m compileall -q scripts`
-2. 新規負例テストは **fixture 追加直後・実装前に失敗すること** を 1 度確認し、その出力（`FAILED` 行）を貼る
+2. 現行バグを露出する新規テストは **fixture 追加直後・実装前に失敗すること** を 1 度確認し、その出力（`FAILED` 行）を貼る。既存実装がすでに fail-closed の負例は PASS でよく、どの負例が既存で守られていたかを分けて報告する
 3. ライブ before/after: 0-b-6 で保存した before と、実装後の同手順の after を 3 サイト分並べる。**title / link が 5 件とも一致**。不一致があれば止まって報告（サイト側の更新で順位が入れ替わった場合は、取得時刻を添えて再取得 1 回まで）
 4. D1 のライブ確認: FASHIONSNAP `/ranking/` の weekly タブ要素に `aria-*` / `data-state` 等の初期選択を示す標準属性があるか（あれば属性名と値を報告。切り替えはしない）
 5. `git diff --stat main` に `.github/` / `docs/` が無いこと。fixture の最大サイズ

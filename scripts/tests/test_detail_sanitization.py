@@ -25,6 +25,14 @@ def test_http_error_uses_status_and_reason():
     assert detail == "HTTP 403 Forbidden"
 
 
+def test_request_exception_uses_unknown_host_for_non_url():
+    detail = fetch_news.summarize_error(
+        requests.exceptions.ConnectionError("connection refused"), "not a url"
+    )
+
+    assert detail == "ConnectionError (unknown-host)"
+
+
 def test_parse_error_redacts_url():
     detail = fetch_news.summarize_error(ValueError("bad https://example.com/path?token=SECRET123"), "https://example.com")
 
