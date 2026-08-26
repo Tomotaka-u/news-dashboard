@@ -39,6 +39,13 @@ RETRY_STATUS_CODES = (429, 500, 502, 503, 504)
 SNS_API_RETRY_TOTAL = 2
 HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 FEED_ACCEPT = "application/rss+xml,application/atom+xml,application/rdf+xml,application/xml;q=0.9,text/xml;q=0.9,*/*;q=0.8"
+_RANKING_DIAG = {"reason": None}
+
+
+def _ranking_fail(reason):
+    """Record a strict ranking extractor failure and return no items."""
+    _RANKING_DIAG["reason"] = reason
+    return []
 
 
 def build_fetch_result(items=None, status="ok", detail=""):
@@ -183,6 +190,7 @@ def extract_techcrunch_ranking(soup, ranking_url):
 
 
 def extract_gizmodo_ranking(soup, ranking_url):
+    _RANKING_DIAG["reason"] = None
     items = []
     seen = set()
     ranking_heading = None
@@ -193,13 +201,13 @@ def extract_gizmodo_ranking(soup, ranking_url):
             break
 
     if ranking_heading is None:
-        return items
+        return _ranking_fail("gizmodo:heading")
 
     container = ranking_heading.find_parent(
         "div", class_=lambda value: value and "rankingContainer" in value
     )
     if container is None:
-        return items
+        return _ranking_fail("gizmodo:container")
 
     tab_container = container.select_one(".gtm-rankingTab")
     tabs = tab_container.find_all("button", recursive=False) if tab_container else []
@@ -218,18 +226,18 @@ def extract_gizmodo_ranking(soup, ranking_url):
         None,
     )
     if daily_index is None or len(tabs) != len(panels) or daily_index >= len(panels):
-        return items
+        return _ranking_fail("gizmodo:tabs_panels")
     if not any(
         re.fullmatch(r"ranking_active(__\w+)?", class_name)
         for class_name in tabs[daily_index].get("class", [])
     ):
-        return items
+        return _ranking_fail("gizmodo:daily_inactive")
 
     daily_list = panels[daily_index].find(
         "section", class_=lambda value: value and "rankingList" in value
     )
     if daily_list is None:
-        return items
+        return _ranking_fail("gizmodo:list")
 
     expected_rank = 1
     for a_tag in daily_list.find_all("a", href=True):
@@ -239,25 +247,27 @@ def extract_gizmodo_ranking(soup, ranking_url):
         if position is None:
             continue
         if _parse_rank_number(position.get_text(strip=True)) != expected_rank:
-            return []
+            return _ranking_fail("gizmodo:rank_seq")
 
         link = to_absolute_url(ranking_url, a_tag.get("href"))
         if "gizmodo.jp" not in link:
-            return []
+            return _ranking_fail("gizmodo:host")
         path = urlparse(link).path or ""
         if any(excluded in path for excluded in ("/tag/", "/issue/", "/author/")):
-            return []
+            return _ranking_fail("gizmodo:excluded_path")
         if not re.search(r"/(article/|\d{4}/\d{2}/)", path):
-            return []
+            return _ranking_fail("gizmodo:path_pattern")
         title_node = a_tag.find(class_=lambda value: value and "rankingTitle" in value)
-        title = title_node.get_text(" ", strip=True) if title_node else a_tag.get_text(" ", strip=True)
+        title = sanitize_text(title_node.get_text(" ", strip=True)) if title_node else ""
+        if not title or _parse_rank_number(title) is not None:
+            return _ranking_fail("gizmodo:title")
         append_ranking_item(items, seen, title, link, ranking_url)
         if len(items) != expected_rank:
-            return []
+            return _ranking_fail("gizmodo:dup_link")
         expected_rank += 1
         if expected_rank > MAX_RANKING_ITEMS:
             break
-    return items if expected_rank == MAX_RANKING_ITEMS + 1 else []
+    return items if expected_rank == MAX_RANKING_ITEMS + 1 else _ranking_fail("gizmodo:count")
 
 
 def extract_theverge_ranking(soup, ranking_url):
@@ -306,6 +316,7 @@ def extract_hackernews_ranking(soup, ranking_url):
 
 
 def extract_fashionsnap_ranking(soup, ranking_url):
+    _RANKING_DIAG["reason"] = None
     heading = next(
         (
             heading
@@ -315,7 +326,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         None,
     )
     if heading is None:
-        return []
+        return _ranking_fail("fashionsnap:heading")
 
     section = next(
         (
@@ -328,7 +339,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         None,
     )
     if section is None:
-        return []
+        return _ranking_fail("fashionsnap:section")
 
     weekly = section.select_one('[data-testid="weekly"]')
     monthly = section.select_one('[data-testid="monthly"]')
@@ -339,15 +350,15 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         or "s3r3r52" not in weekly.get("class", [])
         or "s3r3r52" in monthly.get("class", [])
     ):
-        return []
+        return _ranking_fail("fashionsnap:time_tabs_selection")
 
     tabs = weekly.parent.find_all(attrs={"data-testid": ["weekly", "monthly"]}, recursive=False)
     if len(tabs) != 2:
-        return []
+        return _ranking_fail("fashionsnap:time_tabs_count")
 
     all_tabs = section.select('[data-testid="all"]')
     if len(all_tabs) != 1:
-        return []
+        return _ranking_fail("fashionsnap:all_tab")
     all_tab = all_tabs[0]
     category_tabs = all_tab.parent.find_all(attrs={"data-testid": True}, recursive=False)
     category_testids = [tab.get("data-testid") for tab in category_tabs]
@@ -355,7 +366,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         len(category_tabs) != 4
         or set(category_testids) != {"all", "fashion", "beauty", "other"}
     ):
-        return []
+        return _ranking_fail("fashionsnap:category_tabs")
     all_index = category_tabs.index(all_tab)
 
     article_links = section.select('a[href^="/article/"]')
@@ -370,7 +381,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
         if rank == 1
     ]
     if len(series_starts) != len(category_tabs):
-        return []
+        return _ranking_fail("fashionsnap:series_count")
     series_start = series_starts[all_index]
 
     items = []
@@ -378,11 +389,11 @@ def extract_fashionsnap_ranking(soup, ranking_url):
     for expected_rank in range(1, MAX_RANKING_ITEMS + 1):
         ranked_index = series_start + expected_rank - 1
         if ranked_index >= len(ranked_links):
-            return []
+            return _ranking_fail("fashionsnap:series_short")
 
         link_index, rank_link, rank = ranked_links[ranked_index]
         if link_index + 1 >= len(article_links):
-            return []
+            return _ranking_fail("fashionsnap:title_missing")
 
         title_link = article_links[link_index + 1]
         title = sanitize_text(title_link.get_text(" ", strip=True))
@@ -392,7 +403,7 @@ def extract_fashionsnap_ranking(soup, ranking_url):
             or not title
             or _parse_rank_number(title) is not None
         ):
-            return []
+            return _ranking_fail("fashionsnap:rank_title_pair")
 
         append_ranking_item(
             items,
@@ -402,11 +413,12 @@ def extract_fashionsnap_ranking(soup, ranking_url):
             ranking_url,
         )
         if len(items) != expected_rank:
-            return []
-    return items if len(items) == MAX_RANKING_ITEMS else []
+            return _ranking_fail("fashionsnap:dup_link")
+    return items if len(items) == MAX_RANKING_ITEMS else _ranking_fail("fashionsnap:count")
 
 
 def extract_nikkei_ranking(soup, ranking_url):
+    _RANKING_DIAG["reason"] = None
     items = []
     seen = set()
     container = next(
@@ -421,7 +433,7 @@ def extract_nikkei_ranking(soup, ranking_url):
         None,
     )
     if container is None:
-        return items
+        return _ranking_fail("nikkei:container")
     for expected_rank, item in enumerate(
         container.select(".m-miM32_item")[:MAX_RANKING_ITEMS], start=1
     ):
@@ -432,11 +444,14 @@ def extract_nikkei_ranking(soup, ranking_url):
             or a_tag is None
             or _parse_rank_number(rank_node.get_text(strip=True)) != expected_rank
         ):
-            return []
-        append_ranking_item(items, seen, a_tag.get_text(strip=True), a_tag.get("href"), ranking_url)
+            return _ranking_fail("nikkei:rank_seq")
+        title = sanitize_text(a_tag.get_text(strip=True))
+        if not title or _parse_rank_number(title) is not None:
+            return _ranking_fail("nikkei:title")
+        append_ranking_item(items, seen, title, a_tag.get("href"), ranking_url)
         if len(items) != expected_rank:
-            return []
-    return items if len(items) == MAX_RANKING_ITEMS else []
+            return _ranking_fail("nikkei:dup_link")
+    return items if len(items) == MAX_RANKING_ITEMS else _ranking_fail("nikkei:count")
 
 
 def extract_bbc_ranking(soup, ranking_url):
@@ -622,8 +637,14 @@ def fetch_ranking(session, site):
         else:
             content = resp.content
         soup = BeautifulSoup(content, "html.parser")
+        _RANKING_DIAG["reason"] = None
         items = extractor(soup, ranking_url)
+        reason = _RANKING_DIAG["reason"]
+        if not items and reason:
+            print(f"[RANKING FAIL DETAIL] {site.get('name', '?')}: anchor={reason}")
+        _RANKING_DIAG["reason"] = None
     except Exception as exc:
+        _RANKING_DIAG["reason"] = None
         return build_fetch_result(status="parse_error", detail=summarize_error(exc, ranking_url))
 
     items = items[:MAX_RANKING_ITEMS]
