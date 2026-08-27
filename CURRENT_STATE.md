@@ -1,6 +1,6 @@
 # news-dashboard 現状まとめ
 
-最終確認日: 2026-08-24
+最終確認日: 2026-08-27
 
 ---
 
@@ -44,7 +44,7 @@ news-dashboard/
 |--------|------|
 | Today's News | RSSフィード・スクレイピングによる最新記事 |
 | Rankings | 各サイトの人気記事ランキング |
-| SNS | xAI Grok API経由のXトレンドポスト |
+| SNS | Grok Automations への日次導線（xAI API取得は一時停止） |
 | Bookmarks | `config.py` / `BOOKMARKS` の静的リンク一覧（自動取得なし、手動巡回用） |
 
 ---
@@ -85,6 +85,7 @@ news-dashboard/
 - `MAX_RANKING_ITEMS = 5`（ランキングの最大件数）
 - `MIN_TOTAL_ITEMS = 20`（記事総数が未満なら `docs/` を更新しない品質ゲート）
 - `DEFAULT_XAI_MODEL = "grok-4-1-fast-reasoning"`（`XAI_MODEL` 未設定時）
+- `SNS_FETCH_ENABLED = False`（一時停止中。`True` は既存xAI取得だけを再開し、表示復帰は別途macroを戻す）
 
 ---
 
@@ -153,10 +154,15 @@ ranking_url + ranking_type を持つサイトはランキング取得あり:
 
 ---
 
-## SNSタブ（config.py / SNS_CATEGORIES）
+## SNSタブ（Grok Automations CTA / 既存xAI契約の保全）
 
-xAI Grok API (`POST https://api.x.ai/v1/responses`) + `x_search` ビルトインツールで取得。
-モデル: `XAI_MODEL`、未設定時は `DEFAULT_XAI_MODEL`（現在 `grok-4-1-fast-reasoning`）
+主表示は `https://grok.com/automations` を新規タブで開くCTA。ユーザーがGrok側で設定済みのAutomationsへ毎日入るための一時導線として運用する。
+
+自動xAI取得は `config.py` の `SNS_FETCH_ENABLED = False` で一時停止中。無効時は `fetch_all_sns()` を呼ばず、各 `SNS_CATEGORIES` の表示属性と `posts=[]` を持つ `sns_data` をテンプレートへ渡す。これにより外部xAIリクエストを0にしつつ、カテゴリとrender契約を保全する。
+
+既存のxAI Grok API (`POST https://api.x.ai/v1/responses`) + `x_search` 取得ロジックは削除していない。`SNS_FETCH_ENABLED = True` に戻すと取得だけを再開できるが、SNSタブはCTAのままなので取得結果は表示されない。表示復帰には `#tab-sns` のCTAを `{{ legacy_sns_cards(sns_data) }}` へ差し替える別変更が必要。再開前に現行モデルID、APIキー、Billing、`x_search` 権限を再確認する。
+
+保全中のモデル設定: `XAI_MODEL`、未設定時は `DEFAULT_XAI_MODEL`（現在 `grok-4-1-fast-reasoning`）
 
 | key | label | badge | アクセントカラー | 言語 |
 |-----|-------|-------|------------------|------|
@@ -166,7 +172,7 @@ xAI Grok API (`POST https://api.x.ai/v1/responses`) + `x_search` ビルトイン
 | ai_en | AI (English) | AI-EN | #8b5cf6 | 英語 |
 | blockchain | ブロックチェーン | CHAIN | #f59e0b | 日英混合 |
 
-各カテゴリで個別にAPIを呼ぶ（5回/実行）。
+再開時は各カテゴリで個別にAPIを呼ぶ（5カテゴリ、403等の失敗時は最大2試行/カテゴリ）。
 各カテゴリ 8〜10件取得。
 リトライ: `SNS_API_RETRY_TOTAL = 2`、タイムアウト: 120秒。
 
@@ -183,8 +189,8 @@ URLなしのポストは `sns-no-link` クラスでグレーアウト表示。
 
 | 変数名 | 用途 |
 |--------|------|
-| XAI_API_KEY | xAI Grok API認証（GitHub Secretsに設定済み） |
-| XAI_MODEL | xAI モデルの上書き。未設定時は `DEFAULT_XAI_MODEL` |
+| XAI_API_KEY | xAI Grok API認証（GitHub Secretsに設定済み。取得停止中はコードから読まない） |
+| XAI_MODEL | xAI モデルの上書き。未設定時は `DEFAULT_XAI_MODEL`（取得再開時のみ使用） |
 | NEWS_MIN_TOTAL_ITEMS | テスト・診断用の品質ゲート上書き。実行時に整数として読む |
 
 ### `status.json` / 画面の `detail` 方針
@@ -203,7 +209,7 @@ URL・パス・クエリ・生の例外文は公開しない。取得例外は `
   1. checkout
   2. Python 3.12 セットアップ
   3. pip install -r scripts/requirements.txt
-  4. python scripts/fetch_news.py（XAI_API_KEY注入）
+  4. python scripts/fetch_news.py（XAI_API_KEY注入。`SNS_FETCH_ENABLED = False` の間はxAI取得に使用しない）
   5. docs/ に変更があればコミット&プッシュ（push 失敗時は origin/main に rebase して最大3回リトライ。競合は exit 1 で失敗させる）
 ```
 

@@ -28,6 +28,7 @@ from config import (
     MIN_TOTAL_ITEMS,
     SITES,
     SNS_CATEGORIES,
+    SNS_FETCH_ENABLED,
 )
 
 JST = timezone(timedelta(hours=9))
@@ -807,6 +808,21 @@ def fetch_all_sns(session):
     return results
 
 
+def build_empty_sns_data():
+    """Build the SNS template contract without making xAI requests."""
+    return [
+        {
+            "key": category["key"],
+            "label": category["label"],
+            "badge": category["badge"],
+            "accent_color": category["accent_color"],
+            "icon_gradient": category["icon_gradient"],
+            "posts": [],
+        }
+        for category in SNS_CATEGORIES
+    ]
+
+
 def build_site_view_model(site, items):
     """Build UI-facing site payload with defaults in one place."""
     return {
@@ -949,8 +965,12 @@ def run(session=None, output_dir=None):
         if ranking_total_sources and ranking_success_sources == 0:
             print(f"[RANKING ALL FAIL] all {ranking_total_sources} ranking sources failed")
 
-        # Fetch SNS data
-        sns_data = fetch_all_sns(session)
+        # Keep the SNS render contract while automated xAI requests are paused.
+        if SNS_FETCH_ENABLED:
+            sns_data = fetch_all_sns(session)
+        else:
+            print("[SNS SKIP] Automated xAI SNS fetching is disabled.")
+            sns_data = build_empty_sns_data()
 
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         template_dir = os.path.join(project_root, "templates")
