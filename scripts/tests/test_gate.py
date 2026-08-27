@@ -82,3 +82,106 @@ def test_invalid_gate_environment_value_is_not_silenced(monkeypatch, tmp_path):
         fetch_news.run(session=object(), output_dir=tmp_path)
 
     assert list(tmp_path.iterdir()) == []
+
+
+def capture_sns_data(monkeypatch):
+    captured = {}
+
+    class CapturingTemplate:
+        def render(self, **kwargs):
+            captured["sns_data"] = kwargs["sns_data"]
+            return "<html></html>"
+
+    class CapturingEnvironment:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def get_template(self, name):
+            assert name == "index.html.j2"
+            return CapturingTemplate()
+
+    monkeypatch.setattr(fetch_news, "Environment", CapturingEnvironment)
+    return captured
+
+
+def test_sns_fetch_is_disabled_by_default_and_keeps_category_contract(monkeypatch, tmp_path, capsys):
+    configure(monkeypatch, 20)
+    captured = capture_sns_data(monkeypatch)
+    monkeypatch.setenv("XAI_API_KEY", "fixture-key-must-not-be-read")
+    secret_reads = []
+    original_get = fetch_news.os.environ.get
+
+    def tracking_get(key, default=None):
+        if key in {"XAI_API_KEY", "XAI_MODEL"}:
+            secret_reads.append(key)
+        return original_get(key, default)
+
+    monkeypatch.setattr(fetch_news.os.environ, "get", tracking_get)
+
+    assert fetch_news.SNS_FETCH_ENABLED is False
+
+    class NoPostSession:
+        post_calls = 0
+
+        def post(self, *args, **kwargs):
+            self.post_calls += 1
+            raise AssertionError("xAI HTTP requests must be disabled by default")
+
+    session = NoPostSession()
+    fetch_news.run(session=session, output_dir=tmp_path)
+
+    assert "[SNS SKIP] Automated xAI SNS fetching is disabled." in capsys.readouterr().out
+    assert session.post_calls == 0
+    assert secret_reads == []
+    assert captured["sns_data"] == [
+        {
+            "key": category["key"],
+            "label": category["label"],
+            "badge": category["badge"],
+            "accent_color": category["accent_color"],
+            "icon_gradient": category["icon_gradient"],
+            "posts": [],
+        }
+        for category in fetch_news.SNS_CATEGORIES
+    ]
+
+
+def test_sns_fetch_enabled_override_uses_all_legacy_category_requests(monkeypatch, tmp_path):
+    configure(monkeypatch, 20)
+    captured = capture_sns_data(monkeypatch)
+    monkeypatch.setenv("XAI_API_KEY", "fixture-key")
+    monkeypatch.setattr(fetch_news, "SNS_FETCH_ENABLED", True, raising=False)
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "output": [{
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "output_text", "text": "[]"}],
+                }],
+            }
+
+    class RecordingSession:
+        def __init__(self):
+            self.post_calls = []
+
+        def post(self, url, **kwargs):
+            self.post_calls.append({"url": url, **kwargs})
+            return FakeResponse()
+
+    session = RecordingSession()
+
+    fetch_news.run(session=session, output_dir=tmp_path)
+
+    assert len(session.post_calls) == len(fetch_news.SNS_CATEGORIES) == 5
+    assert {call["url"] for call in session.post_calls} == {
+        "https://api.x.ai/v1/responses",
+    }
+    assert [category["key"] for category in captured["sns_data"]] == [
+        category["key"] for category in fetch_news.SNS_CATEGORIES
+    ]
+    assert all(category["posts"] == [] for category in captured["sns_data"])

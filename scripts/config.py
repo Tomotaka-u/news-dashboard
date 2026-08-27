@@ -203,6 +203,8 @@ MAX_ITEMS_PER_SITE = 8
 MAX_RANKING_ITEMS = 5
 MIN_TOTAL_ITEMS = 20
 DEFAULT_XAI_MODEL = "grok-4-1-fast-reasoning"
+# True resumes paid xAI fetching only; restore the template macro separately.
+SNS_FETCH_ENABLED = False
 
 # Bookmarks – static links for manual exploration (no daily fetching)
 BOOKMARKS = [

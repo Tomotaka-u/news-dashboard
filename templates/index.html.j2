@@ -1,3 +1,51 @@
+{% macro legacy_sns_cards(sns_data) %}
+{# Temporary recovery path: restore {{ legacy_sns_cards(sns_data) }} in #tab-sns to re-enable the existing SNS card UI. #}
+{%- if sns_data %}
+<div class="sns-grid">
+  {%- for cat in sns_data %}
+  <div class="news-card">
+    <div class="card-accent-stripe" style="background: {{ cat.accent_color }};"></div>
+    <div class="card-header">
+      <div class="source-icon" style="background: {{ cat.icon_gradient }};">𝕏</div>
+      <div class="source-info" style="cursor:default">
+        <div class="source-name">{{ cat.label }}</div>
+        <div class="source-url">x.com</div>
+      </div>
+      <div class="source-badge" style="background: {{ cat.accent_color }}11; color: {{ cat.accent_color }};">{{ cat.badge }}</div>
+    </div>
+    <ul class="card-headlines sns-post-list">
+      {%- for post in cat.posts %}
+      <li>
+        <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+        <div class="headline-content">
+          {%- if post.url %}
+          <a href="{{ post.url }}" target="_blank" rel="noopener">
+            <span class="sns-author">{{ post.author }}</span>
+            <span class="sns-text">{{ post.content }}</span>
+          </a>
+          {%- else %}
+          <span class="sns-no-link">
+            <span class="sns-author">{{ post.author }}</span>
+            <span class="sns-text">{{ post.content }}</span>
+          </span>
+          {%- endif %}
+        </div>
+      </li>
+      {%- endfor %}
+      {%- if not cat.posts %}
+      <li style="padding:20px 24px;color:var(--text-muted);font-size:13px;">データを取得できませんでした</li>
+      {%- endif %}
+    </ul>
+  </div>
+  {%- endfor %}
+</div>
+{%- else %}
+<div class="ranking-empty">No SNS data available</div>
+{%- endif %}
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="ja">
 
@@ -215,57 +263,21 @@
       <!-- SNS Tab Content -->
       <div class="swipe-slide tab-content" id="tab-sns" role="tabpanel" aria-labelledby="tab-btn-sns">
         <div class="section-header">
-          <div class="section-accent" style="background: #1d9bf0;"></div>
-          <div class="section-title">𝕏 Trending Posts</div>
-          <div class="section-count">{{ sns_data | length }} categories</div>
+          <div class="section-accent" style="background: #111827;"></div>
+          <div class="section-title">Grok Automations</div>
+          <div class="section-count">Daily workflow</div>
         </div>
-        {%- if sns_data %}
-        <div class="sns-grid">
-          {%- for cat in sns_data %}
-          <div class="news-card">
-            <div class="card-accent-stripe" style="background: {{ cat.accent_color }};"></div>
-            <div class="card-header">
-              <div class="source-icon" style="background: {{ cat.icon_gradient }};">𝕏</div>
-              <div class="source-info" style="cursor:default">
-                <div class="source-name">{{ cat.label }}</div>
-                <div class="source-url">x.com</div>
-              </div>
-              <div class="source-badge" style="background: {{ cat.accent_color }}11; color: {{ cat.accent_color }};">{{ cat.badge }}</div>
-            </div>
-            <ul class="card-headlines sns-post-list">
-              {%- for post in cat.posts %}
-              <li>
-                <svg class="headline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-                <div class="headline-content">
-                  {%- if post.url %}
-                  <a href="{{ post.url }}" target="_blank" rel="noopener">
-                    <span class="sns-author">{{ post.author }}</span>
-                    <span class="sns-text">{{ post.content }}</span>
-                  </a>
-                  {%- else %}
-                  <span class="sns-no-link">
-                    <span class="sns-author">{{ post.author }}</span>
-                    <span class="sns-text">{{ post.content }}</span>
-                  </span>
-                  {%- endif %}
-                </div>
-              </li>
-              {%- endfor %}
-              {%- if not cat.posts %}
-              <li style="padding:20px 24px;color:var(--text-muted);font-size:13px;">データを取得できませんでした</li>
-              {%- endif %}
-            </ul>
+        <section class="sns-cta" aria-label="Grok Automations の案内">
+          <div class="sns-cta-mark" aria-hidden="true">G</div>
+          <div class="sns-cta-content">
+            <p class="sns-cta-eyebrow">YOUR DAILY BRIEFING</p>
+            <h2>毎日の情報収集を自動化</h2>
+            <p>気になるテーマの最新情報を、Grok Automations で毎日の習慣に。</p>
+            <a class="sns-cta-link" href="https://grok.com/automations" target="_blank" rel="noopener">
+              Grok Automations を開く <span aria-hidden="true">↗</span>
+            </a>
           </div>
-          {%- endfor %}
-        </div>
-        {%- else %}
-        <div class="ranking-empty">
-          No SNS data available
-        </div>
-        {%- endif %}
+        </section>
       </div>
 
       <!-- Bookmarks Tab Content -->
