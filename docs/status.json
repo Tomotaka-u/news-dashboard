@@ -1,16 +1,16 @@
 {
   "feeds": {
-    "ok_sources": 17,
+    "ok_sources": 16,
     "total_sources": 17
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 136,
+    "overall_total": 128,
     "passed": true
   },
-  "generated_at": "2026-08-29T23:13:19+09:00",
+  "generated_at": "2026-08-30T08:04:55+09:00",
   "rankings": {
-    "ok_sources": 10,
+    "ok_sources": 9,
     "total_sources": 10
   },
   "sources": [
@@ -71,11 +71,11 @@
       "status": "ok"
     },
     {
-      "count": 8,
-      "detail": "",
+      "count": 0,
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
       "kind": "feed",
       "name": "AI News",
-      "status": "ok"
+      "status": "empty"
     },
     {
       "count": 8,
@@ -106,11 +106,11 @@
       "status": "ok"
     },
     {
-      "count": 5,
-      "detail": "",
+      "count": 0,
+      "detail": "parser 'fashionsnap' returned 0 items",
       "kind": "ranking",
       "name": "FASHIONSNAP",
-      "status": "ok"
+      "status": "empty"
     },
     {
       "count": 8,
