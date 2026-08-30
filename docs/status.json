@@ -8,7 +8,7 @@
     "overall_total": 128,
     "passed": true
   },
-  "generated_at": "2026-08-30T08:04:55+09:00",
+  "generated_at": "2026-08-30T23:20:01+09:00",
   "rankings": {
     "ok_sources": 9,
     "total_sources": 10
@@ -72,10 +72,10 @@
     },
     {
       "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
+      "detail": "ConnectTimeout (www.artificialintelligence-news.com)",
       "kind": "feed",
       "name": "AI News",
-      "status": "empty"
+      "status": "http_error"
     },
     {
       "count": 8,
