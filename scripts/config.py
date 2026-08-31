@@ -265,6 +265,13 @@ BOOKMARKS = [
         "accent_color": "#2e7d32",
     },
     {
+        "name": "日本教育新聞",
+        "url": "https://www.kyoiku-press.com/",
+        "icon": "日",
+        "icon_gradient": "linear-gradient(135deg, #b91c1c, #ef4444)",
+        "accent_color": "#b91c1c",
+    },
+    {
         "name": "ICT教育ニュース",
         "url": "https://ict-enews.net/",
         "icon": "IC",
