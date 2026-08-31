@@ -1,14 +1,14 @@
 {
   "feeds": {
-    "ok_sources": 16,
+    "ok_sources": 17,
     "total_sources": 17
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 128,
+    "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-08-31T10:50:35+09:00",
+  "generated_at": "2026-09-01T01:49:33+09:00",
   "rankings": {
     "ok_sources": 9,
     "total_sources": 10
@@ -71,11 +71,11 @@
       "status": "ok"
     },
     {
-      "count": 0,
-      "detail": "ConnectTimeout (www.artificialintelligence-news.com)",
+      "count": 8,
+      "detail": "",
       "kind": "feed",
       "name": "AI News",
-      "status": "http_error"
+      "status": "ok"
     },
     {
       "count": 8,
