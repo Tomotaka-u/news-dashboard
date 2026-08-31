@@ -272,6 +272,13 @@ BOOKMARKS = [
         "accent_color": "#b91c1c",
     },
     {
+        "name": "各教科等の専門部会等の今後のスケジュール（予定）",
+        "url": "https://www.mext.go.jp/b_menu/shingi/chukyo/chukyo3/004/gaiyou/mext_00008.html",
+        "icon": "文",
+        "icon_gradient": "linear-gradient(135deg, #005bac, #00a0e9)",
+        "accent_color": "#005bac",
+    },
+    {
         "name": "ICT教育ニュース",
         "url": "https://ict-enews.net/",
         "icon": "IC",
