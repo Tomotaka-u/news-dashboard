@@ -8,9 +8,9 @@
     "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-09-01T01:49:33+09:00",
+  "generated_at": "2026-09-01T09:26:47+09:00",
   "rankings": {
-    "ok_sources": 9,
+    "ok_sources": 8,
     "total_sources": 10
   },
   "sources": [
@@ -50,11 +50,11 @@
       "status": "ok"
     },
     {
-      "count": 5,
-      "detail": "",
+      "count": 0,
+      "detail": "parser 'gizmodo' returned 0 items",
       "kind": "ranking",
       "name": "GIZMODO JAPAN",
-      "status": "ok"
+      "status": "empty"
     },
     {
       "count": 8,
