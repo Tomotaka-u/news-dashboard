@@ -1,16 +1,16 @@
 {
   "feeds": {
-    "ok_sources": 17,
+    "ok_sources": 16,
     "total_sources": 17
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 136,
+    "overall_total": 128,
     "passed": true
   },
-  "generated_at": "2026-09-04T08:03:56+09:00",
+  "generated_at": "2026-09-04T22:14:46+09:00",
   "rankings": {
-    "ok_sources": 7,
+    "ok_sources": 8,
     "total_sources": 10
   },
   "sources": [
@@ -71,11 +71,11 @@
       "status": "ok"
     },
     {
-      "count": 8,
-      "detail": "",
+      "count": 0,
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
       "kind": "feed",
       "name": "AI News",
-      "status": "ok"
+      "status": "empty"
     },
     {
       "count": 8,
@@ -92,11 +92,11 @@
       "status": "ok"
     },
     {
-      "count": 0,
-      "detail": "HTTP 429 Too Many Requests",
+      "count": 5,
+      "detail": "",
       "kind": "ranking",
       "name": "Hacker News",
-      "status": "http_error"
+      "status": "ok"
     },
     {
       "count": 8,
