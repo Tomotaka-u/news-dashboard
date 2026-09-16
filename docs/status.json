@@ -1,16 +1,16 @@
 {
   "feeds": {
-    "ok_sources": 16,
+    "ok_sources": 17,
     "total_sources": 17
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 128,
+    "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-09-16T08:27:23+09:00",
+  "generated_at": "2026-09-16T23:04:57+09:00",
   "rankings": {
-    "ok_sources": 9,
+    "ok_sources": 8,
     "total_sources": 10
   },
   "sources": [
@@ -50,11 +50,11 @@
       "status": "ok"
     },
     {
-      "count": 5,
-      "detail": "",
+      "count": 0,
+      "detail": "parser 'gizmodo' returned 0 items",
       "kind": "ranking",
       "name": "GIZMODO JAPAN",
-      "status": "ok"
+      "status": "empty"
     },
     {
       "count": 8,
@@ -71,11 +71,11 @@
       "status": "ok"
     },
     {
-      "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
+      "count": 8,
+      "detail": "",
       "kind": "feed",
       "name": "AI News",
-      "status": "empty"
+      "status": "ok"
     },
     {
       "count": 8,
