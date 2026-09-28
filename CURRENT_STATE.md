@@ -61,7 +61,10 @@ news-dashboard/
 | AI News | RSS | AI | #0ea5e9 |
 | CryptoSlate | RSS | CRYPTO | #1e40af |
 | Hacker News | RSS | TECH | #f97316 |
+| WIRED | RSS | TECH | #111111 |
 | WIRED JAPAN | RSS | TECH | #111111 |
+
+WIRED（英語版）は公式 RSS `https://www.wired.com/feed/rss` を利用し、WIRED JAPAN とは別ソースとして表示する。
 
 ### ファッション・デザイン系
 | サイト | 取得方法 | バッジ | アクセントカラー |

@@ -126,6 +126,14 @@ SITES = [
 
     # テック・AI系（追加）
     {
+        "name": "WIRED", "url": "https://www.wired.com/feed/rss",
+        "category": "tech", "type": "rss",
+        "icon": "WI", "css_class": "wired", "domain": "wired.com", "badge": "TECH",
+        "site_url": "https://www.wired.com/",
+        "icon_gradient": "linear-gradient(135deg, #111, #333)",
+        "accent_color": "#111111",
+    },
+    {
         "name": "WIRED JAPAN", "url": "https://wired.jp/feed/rss",
         "category": "tech", "type": "rss",
         "icon": "WI", "css_class": "wiredjp", "domain": "wired.jp", "badge": "TECH",
