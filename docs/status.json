@@ -8,7 +8,7 @@
     "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-10-09T10:02:18+09:00",
+  "generated_at": "2026-10-10T00:54:13+09:00",
   "rankings": {
     "ok_sources": 9,
     "total_sources": 10
@@ -72,7 +72,7 @@
     },
     {
       "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:0: syntax error)",
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
       "kind": "feed",
       "name": "AI News",
       "status": "empty"
