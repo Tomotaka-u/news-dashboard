@@ -5,10 +5,10 @@
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 134,
+    "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-10-11T09:09:12+09:00",
+  "generated_at": "2026-10-12T00:24:25+09:00",
   "rankings": {
     "ok_sources": 9,
     "total_sources": 10
@@ -99,7 +99,7 @@
       "status": "ok"
     },
     {
-      "count": 6,
+      "count": 8,
       "detail": "",
       "kind": "feed",
       "name": "FASHIONSNAP",
