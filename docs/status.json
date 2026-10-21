@@ -8,7 +8,7 @@
     "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-10-21T23:23:12+09:00",
+  "generated_at": "2026-10-22T08:56:48+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -72,10 +72,10 @@
     },
     {
       "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:0: syntax error)",
+      "detail": "HTTP 500 Internal Server Error",
       "kind": "feed",
       "name": "AI News",
-      "status": "empty"
+      "status": "http_error"
     },
     {
       "count": 8,
