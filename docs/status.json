@@ -8,7 +8,7 @@
     "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-10-22T08:56:48+09:00",
+  "generated_at": "2026-10-22T23:24:07+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -72,10 +72,10 @@
     },
     {
       "count": 0,
-      "detail": "HTTP 500 Internal Server Error",
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
       "kind": "feed",
       "name": "AI News",
-      "status": "http_error"
+      "status": "empty"
     },
     {
       "count": 8,
