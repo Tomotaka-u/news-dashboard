@@ -8,9 +8,9 @@
     "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-11-01T00:09:39+09:00",
+  "generated_at": "2026-11-01T08:58:15+09:00",
   "rankings": {
-    "ok_sources": 9,
+    "ok_sources": 10,
     "total_sources": 10
   },
   "sources": [
@@ -106,11 +106,11 @@
       "status": "ok"
     },
     {
-      "count": 0,
-      "detail": "parser 'fashionsnap' returned 0 items",
+      "count": 5,
+      "detail": "",
       "kind": "ranking",
       "name": "FASHIONSNAP",
-      "status": "empty"
+      "status": "ok"
     },
     {
       "count": 8,
