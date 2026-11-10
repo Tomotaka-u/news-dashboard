@@ -1,14 +1,14 @@
 {
   "feeds": {
-    "ok_sources": 17,
+    "ok_sources": 16,
     "total_sources": 18
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 136,
+    "overall_total": 128,
     "passed": true
   },
-  "generated_at": "2026-11-10T04:35:19+09:00",
+  "generated_at": "2026-11-10T12:17:51+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -78,11 +78,11 @@
       "status": "empty"
     },
     {
-      "count": 8,
-      "detail": "",
+      "count": 0,
+      "detail": "HTTP 429 Too Many Requests",
       "kind": "feed",
       "name": "CryptoSlate",
-      "status": "ok"
+      "status": "http_error"
     },
     {
       "count": 8,
