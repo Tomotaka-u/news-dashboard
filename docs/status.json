@@ -1,14 +1,14 @@
 {
   "feeds": {
-    "ok_sources": 16,
+    "ok_sources": 17,
     "total_sources": 18
   },
   "gate": {
     "min_total_items": 20,
-    "overall_total": 128,
+    "overall_total": 136,
     "passed": true
   },
-  "generated_at": "2026-11-10T12:17:51+09:00",
+  "generated_at": "2026-11-11T01:51:23+09:00",
   "rankings": {
     "ok_sources": 10,
     "total_sources": 10
@@ -72,17 +72,17 @@
     },
     {
       "count": 0,
-      "detail": "0 entries after filtering (bozo=1: <unknown>:2:125: not well-formed (invalid token))",
+      "detail": "0 entries after filtering (bozo=1: <unknown>:2:0: syntax error)",
       "kind": "feed",
       "name": "AI News",
       "status": "empty"
     },
     {
-      "count": 0,
-      "detail": "HTTP 429 Too Many Requests",
+      "count": 8,
+      "detail": "",
       "kind": "feed",
       "name": "CryptoSlate",
-      "status": "http_error"
+      "status": "ok"
     },
     {
       "count": 8,
